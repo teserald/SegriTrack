@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Worker Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --main-green: #01f386;
+            --dark-green: #004d37;
+        }
+
+        .navbar {
+            background: var(--dark-green);
+        }
+
+        .pickup-card {
+            border: none;
+            border-radius: 12px;
+            background: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            transition: 0.2s;
+        }
+
+        .pickup-card:active {
+            transform: scale(0.98);
+        }
+
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 4px 10px;
+            border-radius: 12px;
+        }
+
+        .bg-scheduled {
+            background: #e0f2fe;
+            color: #0284c7;
+        }
+
+        .btn-action {
+            background: var(--main-green);
+            color: var(--dark-green);
+            border: none;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body class="bg-light">
+
+    <nav class="navbar navbar-dark py-3 sticky-top">
+        <div class="container d-flex justify-content-between align-items-center">
+            <span class="navbar-brand fw-bold">🚚 Worker Panel</span>
+            <button class="btn btn-sm btn-outline-light" onclick="toggleStatus()">🔴 Offline</button>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="fw-bold mb-0">Assigned Pickups (5)</h5>
+            <a href="map.html" class="btn btn-outline-dark btn-sm"><i class="bi bi-map"></i> Map View</a>
+        </div>
+
+        <!-- Pickup List -->
+        <div id="pickupList">
+            <!-- Item 1 -->
+            <div class="card pickup-card mb-3 p-3" onclick="openAction('101')">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="badge bg-scheduled">Scheduled</span>
+                    <small class="text-muted">10:00 AM</small>
+                </div>
+                <h6 class="fw-bold mb-1">House #42, Green Valley</h6>
+                <p class="small text-muted mb-2">User: Adithya • <i class="bi bi-telephone"></i> 9876543210</p>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-dark btn-sm flex-grow-1">Navigate</button>
+                    <button class="btn btn-action btn-sm flex-grow-1">Start</button>
+                </div>
+            </div>
+
+            <!-- Item 2 -->
+            <div class="card pickup-card mb-3 p-3">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="badge bg-scheduled">Scheduled</span>
+                    <small class="text-muted">10:30 AM</small>
+                </div>
+                <h6 class="fw-bold mb-1">Flat 4B, Sky Towers</h6>
+                <p class="small text-muted mb-2">User: Rahul K.</p>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-dark btn-sm flex-grow-1">Navigate</button>
+                    <button class="btn btn-action btn-sm flex-grow-1">Start</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pickup Action Modal -->
+    <div class="modal fade" id="actionModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">Pickup Check-In</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center mb-4">
+                        <div class="bg-light p-4 rounded-3 d-inline-block mb-2">
+                            <i class="bi bi-qr-code-scan fs-1"></i>
+                        </div>
+                        <p class="text-muted small">Scan User QR or Enter Code</p>
+                        <button class="btn btn-outline-dark w-100 mb-2" onclick="startScanner()"><i
+                                class="bi bi-camera"></i> Open Scanner</button>
+                    </div>
+
+                    <hr>
+
+                    <h6 class="fw-bold mb-3">Record Segregation Quality</h6>
+                    <div class="row g-2 mb-4">
+                        <div class="col-4"><button class="btn btn-outline-success w-100 small"
+                                onclick="setQuality(this)">Excellent</button></div>
+                        <div class="col-4"><button class="btn btn-outline-primary w-100 small"
+                                onclick="setQuality(this)">Good</button></div>
+                        <div class="col-4"><button class="btn btn-outline-warning w-100 small"
+                                onclick="setQuality(this)">Average</button></div>
+                        <div class="col-6"><button class="btn btn-outline-danger w-100 small"
+                                onclick="setQuality(this)">Poor</button></div>
+                        <div class="col-6"><button class="btn btn-outline-secondary w-100 small"
+                                onclick="setQuality(this)">Unsegregated</button></div>
+                    </div>
+
+                    <button class="btn btn-success w-100 py-3 fw-bold" disabled id="completeBtn">Complete
+                        Pickup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        let isOnline = false;
+        let socket;
+        let locationInterval;
+        let currentPickupId = null;
+
+        // Initialize Socket
+        try {
+            socket = io();
+            console.log("Socket connected");
+        } catch (e) { console.error("Socket error", e); }
+
+        // Fetch Pickups on Load
+        document.addEventListener('DOMContentLoaded', fetchPickups);
+
+        async function fetchPickups() {
+            try {
+                const res = await fetch('/api/pickup/assigned');
+                const pickups = await res.json();
+                const container = document.getElementById('pickupList');
+
+                document.querySelector('h5').textContent = `Assigned Pickups (${pickups.length})`;
+
+                if (pickups.length === 0) {
+                    container.innerHTML = `<div class="text-center text-muted py-5">No active pickups assigned.</div>`;
+                    return;
+                }
+
+                container.innerHTML = pickups.map(p => `
+                    <div class="card pickup-card mb-3 p-3" onclick="openAction('${p._id}')">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="badge bg-scheduled">${p.status}</span>
+                            <small class="text-muted">${new Date(p.date).toLocaleDateString()}</small>
+                        </div>
+                        <h6 class="fw-bold mb-1">${p.location.address}</h6>
+                        <p class="small text-muted mb-2">Code: ${p.qrCode || 'N/A'}</p>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-dark btn-sm flex-grow-1" onclick="event.stopPropagation(); window.open('https://maps.google.com/?q=${p.location.coordinates[1]},${p.location.coordinates[0]}')">Navigate</button>
+                            <button class="btn btn-action btn-sm flex-grow-1">Start</button>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (e) {
+                console.error("Fetch error", e);
+            }
+        }
+
+        const modal = new bootstrap.Modal(document.getElementById('actionModal'));
+        let selectedQuality = '';
+
+        function openAction(id) {
+            currentPickupId = id;
+            modal.show();
+        }
+
+        function setQuality(btn) {
+            document.querySelectorAll('.btn-outline-success, .btn-outline-primary, .btn-outline-warning, .btn-outline-danger, .btn-outline-secondary').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            selectedQuality = btn.innerText;
+            document.getElementById('completeBtn').disabled = false;
+        }
+
+        document.getElementById('completeBtn').addEventListener('click', async () => {
+            if (!currentPickupId || !selectedQuality) return;
+
+            try {
+                const res = await fetch(`/api/pickup/${currentPickupId}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        status: 'completed',
+                        segregationDetails: { quality: selectedQuality }
+                    })
+                });
+
+                if (res.ok) {
+                    alert('Pickup Completed!');
+                    modal.hide();
+                    fetchPickups(); // Refresh list
+                }
+            } catch (e) {
+                alert('Error updating status');
+            }
+        });
+
+        // Toggle Online Status
+        function toggleStatus() {
+            const btn = document.querySelector('nav button');
+            isOnline = !isOnline;
+
+            if (isOnline) {
+                btn.innerHTML = '🟢 Online';
+                btn.classList.remove('btn-outline-light');
+                btn.classList.add('btn-light', 'text-success');
+                startLocationSharing();
+            } else {
+                btn.innerHTML = '🔴 Offline';
+                btn.classList.add('btn-outline-light');
+                btn.classList.remove('btn-light', 'text-success');
+                stopLocationSharing();
+            }
+        }
+
+        function startLocationSharing() {
+            if (!socket) return;
+            // Mock location logic
+            let lat = 9.9312;
+            let lng = 76.2673;
+
+            locationInterval = setInterval(() => {
+                lat += (Math.random() - 0.5) * 0.001;
+                lng += (Math.random() - 0.5) * 0.001;
+                socket.emit('updateLocation', {
+                    workerId: localStorage.getItem('workerId') || 'demo-worker',
+                    lat, lng
+                });
+            }, 3000);
+        }
+
+        function stopLocationSharing() {
+            if (locationInterval) clearInterval(locationInterval);
+        }
+
+        function startScanner() {
+            setTimeout(() => {
+                document.querySelector('.bi-qr-code-scan').classList.replace('bi-qr-code-scan', 'bi-check-circle-fill');
+                document.querySelector('.bi-check-circle-fill').classList.add('text-success');
+                alert("QR Code Simulated: Success");
+            }, 500);
+        }
+    </script>
+</body>
+
+</html>

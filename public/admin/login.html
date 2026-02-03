@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SegriTrack | Admin Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: #002e21;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+            padding: 40px;
+            border-radius: 15px;
+            background: white;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .btn-green {
+            background: #004d37;
+            color: white;
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            border: none;
+        }
+
+        .btn-green:hover {
+            background: #01f386;
+            color: #004d37;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="login-card text-center">
+        <h3 class="fw-bold text-success mb-2">Admin Portal</h3>
+        <p class="text-muted mb-4">Secure access for municipal administrators.</p>
+
+        <!-- Google Button (Mock) -->
+        <button class="btn btn-outline-dark w-100 py-3 d-flex align-items-center justify-content-center fw-bold mb-4"
+            onclick="handleGoogleLogin()">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/d/dc/Google-g-icon.png" width="20" class="me-3">
+            Continue with Google
+        </button>
+
+        <!-- DEMO ACCESS SECTION -->
+        <div class="p-3 bg-light rounded text-start border">
+            <h6 class="text-success fw-bold small mb-2 text-uppercase">⚡ Demo Access</h6>
+            <p class="text-muted small mb-3">One-click login for project demonstration.</p>
+            <button type="button" onclick="handleDemoLogin()" class="btn btn-success btn-sm w-100 fw-bold">Login as
+                Administrator</button>
+            <div id="errorMsg" class="text-danger mt-2 small"></div>
+        </div>
+    </div>
+
+    <script>
+        function handleGoogleLogin() {
+            // Mock Google Login - Disabled as requested
+            console.log("Google Login clicked (Disabled mode)");
+            // Alert removed to act 'silent' if requested, or keep small alert
+            // alert("Google Login is disabled for this demo.");
+        }
+
+        async function handleDemoLogin() {
+            const errorMsg = document.getElementById('errorMsg');
+            errorMsg.innerText = 'Logging in...';
+
+            try {
+                // Use Seeded Admin Credentials
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: 'admin', password: 'admin' })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    localStorage.setItem('role', data.role);
+                    localStorage.setItem('token', data.id);
+                    localStorage.setItem('name', data.name);
+                    window.location.href = 'dashboard.html';
+                } else {
+                    errorMsg.innerText = data.message || 'Login failed';
+                }
+
+            } catch (err) {
+                console.error(err);
+                errorMsg.innerText = 'Connection error';
+            }
+        }
+    </script>
+
+</body>
+
+</html>

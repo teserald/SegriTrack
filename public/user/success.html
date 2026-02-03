@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SegriTrack | Success</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        :root { --main-green: #01f386; --dark-green: #004d37; }
+        body { background-color: #f8fafc; font-family: 'Inter', sans-serif; }
+        
+        /* Navigation */
+        .navbar { background: white !important; border-bottom: 1px solid #edf2f7; }
+        .nav-link { color: #4a5568 !important; font-weight: 500; }
+        .nav-link.active { color: var(--dark-green) !important; font-weight: 700; border-bottom: 2px solid var(--main-green); }
+        .profile-circle-nav { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1px solid var(--main-green); margin-left: 10px; cursor: pointer; }
+
+        /* Celebration Card */
+        .success-card { background: white; border-radius: 25px; border: none; box-shadow: 0 15px 35px rgba(0,0,0,0.05); padding: 40px; text-align: center; margin-top: 40px; }
+        .confetti-icon { font-size: 4rem; color: var(--main-green); }
+        
+        /* Reward Box Scaling (1 Gem = 5 Pts | 4 Eco = 1 Pt) */
+        .reward-box { background: #f1fdf7; border-radius: 20px; padding: 25px; border: 1px dashed var(--main-green); }
+        .stat-label { font-size: 0.75rem; font-weight: bold; color: #64748b; text-transform: uppercase; }
+        .stat-value { font-size: 1.8rem; font-weight: 800; color: var(--dark-green); }
+
+        /* Rating Stars */
+        .star-rating { font-size: 2.5rem; color: #e2e8f0; cursor: pointer; transition: 0.2s; }
+        .star-rating .bi-star-fill.active { color: #ffc107; }
+        
+        .footer-dark { background: #002e21; color: #888; padding: 40px 0; }
+    </style>
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg sticky-top py-3 shadow-sm">
+    <div class="container">
+        <a class="navbar-brand fw-bold text-success fs-3" href="home.html">🌱 SegriTrack</a>
+        <div class="collapse navbar-collapse" id="dashNav">
+            <ul class="navbar-nav ms-auto align-items-center">
+                <li class="nav-item"><a class="nav-link" href="home.html">Home</a></li>
+                <li class="nav-item"><a class="nav-link" href="leaderboard.html">Leaderboard</a></li>
+                <li class="nav-item d-flex align-items-center">
+                    <a class="nav-link" href="profile.html">Profile</a>
+                    <a href="profile.html">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/9/93/YT_Profile_icon.png" class="profile-circle-nav shadow-sm">
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-7">
+            <div class="success-card">
+                <div class="confetti-icon mb-2">🎉</div>
+                <h2 class="fw-bold text-dark mb-1">Pickup Successful!</h2>
+                <p class="text-muted mb-4">You just made Kerala a little greener.</p>
+
+                <div class="reward-box mb-4 shadow-sm">
+                    <div class="row">
+                        <div class="col-4">
+                            <div class="stat-label">Eco-Points</div>
+                            <div class="stat-value text-success">+20</div>
+                        </div>
+                        <div class="col-4 border-start border-end">
+                            <div class="stat-label">Gems</div>
+                            <div class="stat-value">💎 +1</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-label">Rank Pts</div>
+                            <div class="stat-value text-primary">+10</div>
+                        </div>
+                    </div>
+                    <p class="small text-muted mt-3 mb-0">
+                        <i class="bi bi-info-circle me-1"></i> 
+                        Points based on segregation quality.
+                    </p>
+                </div>
+
+                <hr class="my-4 opacity-10">
+
+                <h5 class="fw-bold mb-3">Rate Suresh's Service</h5>
+                <div class="star-rating mb-4" id="star-container">
+                    <i class="bi bi-star-fill px-1" data-value="1"></i>
+                    <i class="bi bi-star-fill px-1" data-value="2"></i>
+                    <i class="bi bi-star-fill px-1" data-value="3"></i>
+                    <i class="bi bi-star-fill px-1" data-value="4"></i>
+                    <i class="bi bi-star-fill px-1" data-value="5"></i>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button class="btn btn-success py-3 fw-bold rounded-3 shadow-sm" style="background-color: var(--dark-green); border: none;" onclick="saveAndExit()">
+                        Back to Dashboard
+                    </button>
+                    <button class="btn btn-outline-secondary py-2 border-0 small" onclick="location.href='leaderboard.html'">
+                        See your updated rank <i class="bi bi-arrow-right ms-1"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer class="footer-dark text-center mt-5">
+    <div class="container">
+        <p class="mb-1">🌱 SegriTrack India - Clean. Segregate. Earn.</p>
+        <p class="small mb-0">&copy; 2026. All Rights Reserved.</p>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Star Rating Interactivity
+    const stars = document.querySelectorAll('.star-rating .bi-star-fill');
+    stars.forEach(star => {
+        star.addEventListener('click', function() {
+            const val = this.getAttribute('data-value');
+            stars.forEach(s => {
+                if(s.getAttribute('data-value') <= val) {
+                    s.classList.add('active');
+                } else {
+                    s.classList.remove('active');
+                }
+            });
+        });
+    });
+
+    // Save timestamp for the "Recent Success" banner logic in home.html
+    function saveAndExit() {
+        localStorage.setItem('lastPickupTimestamp', new Date().getTime());
+        window.location.href = 'home.html';
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SegriTrack | Admin Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        :root {
+            --main-green: #01f386;
+            --dark-green: #004d37;
+        }
+
+        body {
+            overflow-x: hidden;
+        }
+
+        .sidebar {
+            height: 100vh;
+            background: var(--dark-green);
+            color: white;
+            position: fixed;
+            width: 250px;
+            padding: 20px;
+        }
+
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+        }
+
+        .nav-link {
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 10px;
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .nav-link i {
+            margin-right: 10px;
+        }
+
+        .stat-card {
+            border: none;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        #liveMap {
+            height: 500px;
+            width: 100%;
+            border-radius: 15px;
+        }
+    </style>
+</head>
+
+<body class="bg-light">
+
+    <!-- Sidebar -->
+    <div class="sidebar d-none d-md-block">
+        <h4 class="fw-bold mb-5 ps-2">🌱 SegriTrack</h4>
+        <nav class="nav flex-column">
+            <a class="nav-link active" href="#"><i class="bi bi-speedometer2"></i> Dashboard</a>
+            <a class="nav-link" href="#"><i class="bi bi-people"></i> Users</a>
+            <a class="nav-link" href="#"><i class="bi bi-truck"></i> Workers</a>
+            <a class="nav-link" href="#"><i class="bi bi-bar-chart"></i> Reports</a>
+            <a class="nav-link text-danger mt-5" href="login.html"><i class="bi bi-box-arrow-left"></i> Logout</a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="fw-bold">Live Monitoring</h4>
+            <span class="badge bg-success p-2">System Online</span>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-3">
+                <div class="stat-card bg-white">
+                    <h6 class="text-muted small fw-bold">TOTAL PICKUPS</h6>
+                    <h3 class="mb-0 fw-bold">1,240</h3>
+                    <small class="text-success"><i class="bi bi-arrow-up"></i> 12% today</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card bg-white">
+                    <h6 class="text-muted small fw-bold">ACTIVE WORKERS</h6>
+                    <h3 class="mb-0 fw-bold">42</h3>
+                    <small class="text-primary">On Route</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card bg-white">
+                    <h6 class="text-muted small fw-bold">SEGREGATION RATE</h6>
+                    <h3 class="mb-0 fw-bold">87%</h3>
+                    <small class="text-success">Excellent</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card bg-white">
+                    <h6 class="text-muted small fw-bold">ISSSUES REPORTED</h6>
+                    <h3 class="mb-0 fw-bold text-danger">5</h3>
+                    <small class="text-muted">Requires Action</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map Section -->
+        <div class="card border-0 shadow-sm p-3 mb-4">
+            <div class="d-flex justify-content-between mb-3">
+                <h6 class="fw-bold">Live Worker Tracking</h6>
+                <button class="btn btn-sm btn-outline-dark">Filter Zone</button>
+            </div>
+            <div id="liveMap"></div>
+        </div>
+
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // Initialize Map (Centered on Kochi/Adoor - using Kochi for now matching seed)
+        const map = L.map('liveMap').setView([9.9312, 76.2673], 13);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        const markers = {};
+        let socket;
+
+        // Fetch Stats
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const res = await fetch('/api/admin/stats');
+                const stats = await res.json();
+
+                // Update UI (Basic mapping of stats)
+                // document.getElementById('totalPickups').innerText = stats.totalPickups; 
+                // Need to add IDs to HTML elements first or use querySelector
+                const statCards = document.querySelectorAll('.stat-card h3');
+                if (statCards.length >= 4) {
+                    statCards[0].innerText = stats.totalPickups || 0;
+                    statCards[1].innerText = stats.activeWorkers || 0;
+                    statCards[2].innerText = stats.segregationRate || '0%';
+                    statCards[3].innerText = stats.pendingIssues || 0;
+                }
+
+            } catch (e) { console.error("Stats fetch error", e); }
+
+            // Connect Socket
+            try {
+                socket = io();
+                console.log("Admin Socket connected");
+
+                socket.on('workerLocation', (data) => {
+                    const { workerId, lat, lng } = data;
+                    if (markers[workerId]) {
+                        markers[workerId].setLatLng([lat, lng]);
+                    } else {
+                        markers[workerId] = L.marker([lat, lng]).addTo(map)
+                            .bindPopup(`<b>Worker: ${workerId}</b><br>Status: Active`);
+                    }
+                });
+
+            } catch (e) { console.error("Socket error", e); }
+        });
+
+    </script>
+</body>
+
+</html>

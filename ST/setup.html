@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SegriTrack | Account Setup</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        :root { --main-green: #01f386; --dark-green: #004d37; }
+        body { background-color: #f8fafc; font-family: 'Inter', sans-serif; }
+        
+        .navbar { background: white !important; border-bottom: 1px solid #edf2f7; }
+        
+        .setup-container { max-width: 500px; margin: 60px auto; }
+        .setup-card { background: white; border-radius: 25px; padding: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        
+        /* Progress Dots */
+        .step-dots { display: flex; justify-content: center; gap: 10px; margin-bottom: 30px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; background: #e2e8f0; }
+        .dot.active { background: var(--main-green); width: 30px; border-radius: 10px; }
+
+        .btn-setup { background: var(--dark-green); color: white; font-weight: 700; border: none; padding: 12px; border-radius: 12px; width: 100%; }
+        .btn-setup:hover { background: var(--main-green); color: var(--dark-green); }
+
+        .map-box { height: 180px; background: #f1f5f9; border-radius: 15px; display: flex; align-items: center; justify-content: center; border: 2px dashed #cbd5e1; cursor: pointer; }
+        
+        .otp-input { letter-spacing: 15px; font-size: 24px; text-align: center; font-weight: bold; border-radius: 10px; background: #f8fafc; }
+
+        .footer-dark { background: #002e21; color: #888; padding: 40px 0; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-light py-3">
+    <div class="container justify-content-center">
+        <a class="navbar-brand fw-bold text-success fs-3" href="index.html">🌱 SegriTrack</a>
+    </div>
+</nav>
+
+<div class="container setup-container">
+    <div class="setup-card">
+        <div class="step-dots">
+            <div class="dot active" id="dot1"></div>
+            <div class="dot" id="dot2"></div>
+            <div class="dot" id="dot3"></div>
+        </div>
+
+        <div id="step1">
+            <h4 class="fw-bold mb-2">Verify Phone</h4>
+            <p class="text-muted small mb-4">We'll send a 4-digit code to verify your identity.</p>
+            <div class="mb-4">
+                <label class="form-label small fw-bold">PHONE NUMBER</label>
+                <div class="input-group">
+                    <span class="input-group-text border-0 bg-light">+91</span>
+                    <input type="tel" class="form-control border-0 bg-light py-2" placeholder="9876543210">
+                </div>
+            </div>
+            <button class="btn btn-setup" onclick="nextStep(2)">Send OTP</button>
+        </div>
+
+        <div id="step2" style="display: none;">
+            <h4 class="fw-bold mb-2">Enter OTP</h4>
+            <p class="text-muted small mb-4">Sent to +91 ******3210</p>
+            <div class="mb-4">
+                <input type="text" class="form-control otp-input py-3" maxlength="4" placeholder="0000">
+            </div>
+            <button class="btn btn-setup" onclick="nextStep(3)">Verify & Continue</button>
+            <p class="text-center mt-3 small"><a href="#" class="text-success text-decoration-none fw-bold">Resend Code</a></p>
+        </div>
+
+        <div id="step3" style="display: none;">
+            <h4 class="fw-bold mb-2">Default Address</h4>
+            <p class="text-muted small mb-4">Pin your home location for automated weekly pickups.</p>
+            <div class="map-box mb-3">
+                <div class="text-center">
+                    <i class="bi bi-geo-alt-fill text-danger fs-2"></i><br>
+                    <span class="small text-muted">Detecting Location...</span>
+                </div>
+            </div>
+            <div class="mb-4">
+                <input type="text" class="form-control border-0 bg-light py-2 mb-2" placeholder="House Name / No.">
+                <input type="text" class="form-control border-0 bg-light py-2" placeholder="Landmark">
+            </div>
+            <button class="btn btn-setup" onclick="finishSetup()">Complete Setup</button>
+        </div>
+    </div>
+</div>
+
+
+
+<footer class="footer-dark text-center">
+    <div class="container">
+        <p class="mb-1 small">🌱 SegriTrack India - Clean. Segregate. Earn.</p>
+        <p class="small mb-0 opacity-50">&copy; 2026. All Rights Reserved.</p>
+    </div>
+</footer>
+
+<script>
+    function nextStep(step) {
+        // Hide all steps
+        document.getElementById('step1').style.display = 'none';
+        document.getElementById('step2').style.display = 'none';
+        document.getElementById('step3').style.display = 'none';
+        
+        // Show current step
+        document.getElementById('step' + step).style.display = 'block';
+        
+        // Update dots
+        document.querySelectorAll('.dot').forEach((dot, index) => {
+            if(index + 1 === step) dot.classList.add('active');
+            else dot.classList.remove('active');
+        });
+    }
+
+    function finishSetup() {
+        alert("Setup Complete! Welcome to the SegriTrack Community.()");
+        window.location.href = 'home.html';
+    }
+</script>
+
+</body>
+</html>

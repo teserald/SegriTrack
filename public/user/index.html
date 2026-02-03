@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SegriTrack | Schedule • Track • Resolve</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --main-green: #01f386;
+            --dark-green: #004d37;
+            --footer-bg: #002e21;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.7)),
+                url("https://upload.wikimedia.org/wikipedia/commons/e/ef/Idukki_Dam_Reservoir_Hillview_Pano_Kerala_Mar22_R16_05581-Pano.jpg");
+            background-size: cover;
+            background-position: center;
+            padding: 150px 0;
+        }
+
+        .section-padding {
+            padding: 100px 0;
+        }
+
+        .btn-green {
+            background: var(--dark-green);
+            color: white;
+            padding: 12px 35px;
+            border-radius: 8px;
+            font-weight: 600;
+            border: none;
+            transition: 0.3s;
+        }
+
+        .btn-green:hover {
+            background: var(--main-green);
+            color: var(--dark-green);
+            transform: translateY(-2px);
+        }
+
+        .card-custom {
+            border: none;
+            border-radius: 20px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.05);
+            transition: 0.3s;
+            height: 100%;
+            background: #fff;
+        }
+
+        .card-custom:hover {
+            transform: translateY(-10px);
+        }
+
+        .icon-circle {
+            width: 70px;
+            height: 70px;
+            background: var(--main-green);
+            color: var(--dark-green);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 25px;
+            font-size: 1.8rem;
+        }
+
+        .footer {
+            background: var(--footer-bg);
+            color: white;
+            padding: 80px 0 30px;
+        }
+
+        .footer a {
+            color: rgba(255, 255, 255, 0.6);
+            text-decoration: none;
+            transition: 0.3s;
+        }
+
+        .footer a:hover {
+            color: var(--main-green);
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top shadow-sm py-3">
+        <div class="container">
+            <a class="navbar-brand fw-bold text-success fs-3" href="#">🌱 SegriTrack</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="mainNav">
+                <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link px-3" href="#">Home</a></li>
+                    <li class="nav-item"><a class="nav-link px-3" href="#how-it-works">Services</a></li>
+                    <li class="nav-item"><a class="nav-link px-3" href="#features">About Us</a></li>
+                    <li class="nav-item"><a class="nav-link px-3" href="#contact">Contact</a></li>
+                </ul>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-success px-4" data-bs-toggle="modal"
+                        data-bs-target="#loginModal">Login</button>
+                    <button class="btn btn-success px-4" data-bs-toggle="modal" data-bs-target="#signupModal">Join
+                        Us</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <header class="hero text-center">
+        <div class="container">
+            <h1 class="display-2 fw-bold text-dark mb-2">SegriTrack</h1>
+            <h4 class="text-muted mb-4 fw-normal">• Schedule • Track • Resolve Waste</h4>
+            <p class="lead mb-5 mx-auto text-secondary" style="max-width: 700px;">Join the community-led movement to
+                revolutionize waste management in Kerala. Monitor your waste from the moment it leaves your doorstep to
+                its final disposal point.</p>
+            <button class="btn btn-green shadow-lg btn-lg" data-bs-toggle="modal" data-bs-target="#signupModal">Get
+                Started Now</button>
+        </div>
+    </header>
+
+    <section id="how-it-works" class="section-padding bg-light">
+        <div class="container text-center">
+            <h6 class="text-success fw-bold text-uppercase">Simple Process</h6>
+            <h2 class="fw-bold mb-5">How It Works</h2>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card-custom p-4">
+                        <div class="icon-circle">
+                            <i class="bi bi-calendar-check"></i>
+                        </div>
+                        <h5>1. Schedule</h5>
+                        <p class="text-muted">Choose a convenient time slot and waste type (Wet/Dry/E-waste) through our
+                            easy-to-use dashboard.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card-custom p-4">
+                        <div class="icon-circle">
+                            <i class="bi bi-truck"></i>
+                        </div>
+                        <h5>2. Handover</h5>
+                        <p class="text-muted">Our verified waste collector arrives at your doorstep. Scan the QR code to
+                            confirm the pickup.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card-custom p-4">
+                        <div class="icon-circle">
+                            <i class="bi bi-gift"></i>
+                        </div>
+                        <h5>3. Earn Rewards</h5>
+                        <p class="text-muted">Get Eco-Points instantly! Redeem them for coupons, products, or donate to
+                            environmental causes.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="features" class="section-padding">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6 mb-4 mb-lg-0">
+                    <img src="https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+                        class="img-fluid rounded-4 shadow-lg" alt="Segregation">
+                </div>
+                <div class="col-lg-6 ps-lg-5">
+                    <h6 class="text-success fw-bold text-uppercase">Why Choose Us</h6>
+                    <h2 class="fw-bold mb-4">Making Waste Management Smarter</h2>
+                    <div class="mb-4">
+                        <div class="d-flex mb-3">
+                            <i class="bi bi-check-circle-fill text-success fs-4 me-3"></i>
+                            <div>
+                                <h5 class="fw-bold">Real-time Tracking</h5>
+                                <p class="text-muted">Know exactly when the pickup vehicle will arrive with live GPS
+                                    tracking.</p>
+                            </div>
+                        </div>
+                        <div class="d-flex mb-3">
+                            <i class="bi bi-check-circle-fill text-success fs-4 me-3"></i>
+                            <div>
+                                <h5 class="fw-bold">Transparent Reporting</h5>
+                                <p class="text-muted">See where your waste goes. We ensure 100% responsible recycling
+                                    and disposal.</p>
+                            </div>
+                        </div>
+                        <div class="d-flex">
+                            <i class="bi bi-check-circle-fill text-success fs-4 me-3"></i>
+                            <div>
+                                <h5 class="fw-bold">Community Impact</h5>
+                                <p class="text-muted">Join leaderboards, compete with neighbors, and see the collective
+                                    impact of your locality.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="contact" class="section-padding bg-dark text-white">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6 mb-4 mb-lg-0">
+                    <h2 class="fw-bold mb-3">Ready to Clean Up?</h2>
+                    <p class="lead text-white-50 mb-4">Start your journey towards a zero-waste lifestyle today. It's
+                        free to join!</p>
+                    <button class="btn btn-green btn-lg px-5 shadow" data-bs-toggle="modal"
+                        data-bs-target="#signupModal">Join Now</button>
+                </div>
+                <div class="col-lg-6 text-center text-lg-end">
+                    <div class="p-4 border border-secondary rounded-4 d-inline-block text-start">
+                        <h5 class="fw-bold mb-3"><i class="bi bi-headset me-2"></i> Support</h5>
+                        <p class="mb-1 text-white-50">Email: support@segritrack.com</p>
+                        <p class="mb-0 text-white-50">Helpline: +91 98765 43210</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container text-center">
+            <p class="mb-2 text-white-50">&copy; 2026 SegriTrack India. All Rights Reserved.</p>
+            <div class="small">
+                <a href="#" class="me-3">Privacy Policy</a>
+                <a href="#" class="me-3">Terms of Service</a>
+                <a href="#">Cookie Policy</a>
+            </div>
+        </div>
+    </footer>
+
+    <div class="modal fade" id="loginModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content p-5 text-center rounded-4 shadow">
+                <h3 class="fw-bold text-success mb-2">Welcome Back</h3>
+                <p class="text-muted mb-4">Login with Google to access your dashboard.</p>
+
+                <!-- Google Button (Mock) -->
+                <button
+                    class="btn btn-outline-dark w-100 py-3 d-flex align-items-center justify-content-center fw-bold mb-4"
+                    onclick="handleGoogleLogin()">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/d/dc/Google-g-icon.png" width="20"
+                        class="me-3"> Continue with Google
+                </button>
+
+                <!-- Demo Access Section -->
+                <div class="p-3 bg-light rounded border text-start">
+                    <h6 class="text-success fw-bold small mb-2 text-uppercase"> Demo Access</h6>
+                    <div class="mb-3">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="demoRole" id="modalRoleUser" value="user"
+                                checked>
+                            <label class="form-check-label small" for="modalRoleUser">User</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="demoRole" id="modalRoleWorker"
+                                value="worker">
+                            <label class="form-check-label small" for="modalRoleWorker">Worker</label>
+                        </div>
+                    </div>
+                    <button type="button" onclick="handleDemoLogin()" class="btn btn-success btn-sm w-100 fw-bold">Login
+                        as Demo Account</button>
+                    <div id="modalErrorMsg" class="text-danger small mt-2"></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="signupModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content p-5 text-center rounded-4 shadow">
+                <h3 class="fw-bold text-success mb-2">Create Account</h3>
+                <p class="text-muted mb-4">Start your journey by setting up your profile.</p>
+                <button class="btn btn-outline-dark w-100 py-3 d-flex align-items-center justify-content-center fw-bold"
+                    onclick="location.href='setup.html'">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/d/dc/Google-g-icon.png" width="20"
+                        class="me-3"> Continue with Google
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function handleGoogleLogin() {
+            // Mock Google Login - Disabled as requested, does nothing
+            console.log("Google Login clicked (Disabled mode)");
+        }
+
+        async function handleDemoLogin() {
+            const roleEl = document.querySelector('input[name="demoRole"]:checked');
+            if (!roleEl) return;
+
+            const role = roleEl.value;
+            const errorMsg = document.getElementById('modalErrorMsg');
+            errorMsg.innerText = "Logging in...";
+
+            try {
+                // Call Backend to get REAL ObjectID
+                const res = await fetch('http://localhost:3000/api/auth/demo-login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ role })
+                });
+
+                if (!res.ok) throw new Error("Login failed");
+
+                const data = await res.json();
+
+                // Save REAL CREDENTIALS to LocalStorage
+                localStorage.setItem('role', data.role);
+                localStorage.setItem('name', data.name);
+
+                if (data.role === 'worker') {
+                    localStorage.setItem('workerId', data.id); // Real ID
+                    window.location.href = '/public/worker/dashboard.html';
+                } else {
+                    localStorage.setItem('userId', data.id); // Real ID
+                    window.location.href = '/public/user/home.html';
+                }
+
+            } catch (e) {
+                console.error(e);
+                errorMsg.innerText = "Demo Login Connection Failed. Ensure Server is Running.";
+            }
+        }
+    </script>
+</body>
+
+</html>
