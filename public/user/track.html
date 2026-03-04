@@ -247,7 +247,7 @@
             }
 
             // Defaults if API fails
-            let PICKUP_LOCATION = [9.127497, 76.715972];
+            let PICKUP_LOCATION = [9.1324, 76.7182];
             let WORKER_LOCATION = [9.158186, 76.773261];
             let workerId = null;
             let isWorkerOnline = false;
@@ -286,6 +286,9 @@
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
                 attribution: '&copy; SegriTrack'
             }).addTo(map);
+
+            // Fix map size issues
+            setTimeout(() => { map.invalidateSize(); }, 500);
 
             // Premium Icons
             const workerIcon = L.divIcon({
@@ -344,6 +347,11 @@
                     document.getElementById('etaValue').innerText = timeMins + " mins";
                     const container = document.querySelector('.leaflet-routing-container');
                     if (container) container.style.display = 'none';
+                });
+
+                routingControl.on('routingerror', function (e) {
+                    console.error("Routing error", e);
+                    document.getElementById('etaValue').innerText = "Arriving Soon";
                 });
             }
 

@@ -28,7 +28,13 @@ router.post('/schedule', async (req, res) => {
             finalLocation.address = 'Special Location'; // Optional: could use reverse geocoding
         } else {
             // Default pickup uses user's registered address
-            finalLocation.coordinates = user.address?.location?.coordinates || [76.7337, 9.1526];
+            const userCoords = user.address?.location?.coordinates;
+            // Check if coordinates exist and are NOT [0,0]
+            if (userCoords && Array.isArray(userCoords) && userCoords.length === 2 && (userCoords[0] !== 0 || userCoords[1] !== 0)) {
+                finalLocation.coordinates = userCoords;
+            } else {
+                finalLocation.coordinates = [76.7182, 9.1324]; // Precise CEAdoor Fallback
+            }
             finalLocation.address = `${user.address?.street || ''}, ${user.address?.city || ''}`;
         }
 
@@ -123,13 +129,35 @@ router.put('/worker/:id/status', async (req, res) => {
 // Worker: Update Status
 router.put('/:id/status', async (req, res) => {
     try {
-        const { status, segregationDetails } = req.body;
+        const { status, segregationDetails, workerId } = req.body;
+
+        // 1. Update the pickup status
         const pickup = await Pickup.findByIdAndUpdate(req.params.id, {
             status,
-            segregationDetails
+            segregationDetails,
+            worker: workerId // Track which worker completed it
         }, { new: true });
+
+        if (!pickup) return res.status(404).json({ message: 'Pickup not found' });
+
+        // 2. If completed, sync worker location to this pickup's location
+        if (status === 'completed' && workerId) {
+            const Worker = require('../models/Worker');
+            // Prevent syncing [0,0] coordinates
+            if (pickup.location.coordinates && (pickup.location.coordinates[0] !== 0 || pickup.location.coordinates[1] !== 0)) {
+                await Worker.findByIdAndUpdate(workerId, {
+                    'currentLocation.coordinates': pickup.location.coordinates,
+                    'currentLocation.lastUpdated': new Date()
+                });
+                console.log(`[SYNC] Worker ${workerId} location moved to completed pickup: ${pickup.location.address}`);
+            } else {
+                console.warn(`[SYNC] Skipped location sync for Worker ${workerId} - Pickup location was [0,0]`);
+            }
+        }
+
         res.json(pickup);
     } catch (err) {
+        console.error("Status Update Error:", err);
         res.status(500).json({ error: err.message });
     }
 });

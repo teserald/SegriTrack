@@ -552,23 +552,31 @@
         }
 
         async function handleComplete() {
-            if (!currentPickupId || !selectedQuality) return;
+            const workerId = localStorage.getItem('workerId');
+            if (!currentPickupId || !selectedQuality || !workerId) {
+                alert('Please ensure you are logged in and have selected a quality grade.');
+                return;
+            }
             try {
                 const res = await fetch(`${API_BASE}/api/pickup/${currentPickupId}/status`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         status: 'completed',
-                        segregationDetails: { quality: selectedQuality }
+                        segregationDetails: { quality: selectedQuality },
+                        workerId: workerId
                     })
                 });
                 if (res.ok) {
-                    alert('Pickup Completed!');
+                    alert('Pickup Completed! Your location has been synced.');
                     if (modal) modal.hide();
                     fetchPickups();
+                } else {
+                    const err = await res.json();
+                    alert('Error: ' + (err.message || 'Update failed'));
                 }
             } catch (e) {
-                alert('Error updating status');
+                alert('Error updating status: ' + e.message);
             }
         }
 

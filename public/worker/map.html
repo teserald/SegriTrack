@@ -223,9 +223,36 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
     <script>
+        const API_BASE = (window.location.port === '3000') ? '' : 'http://localhost:3000';
+
         document.addEventListener('DOMContentLoaded', async () => {
-            const workerLat = 9.158186;
-            const workerLng = 76.773261;
+            const workerId = localStorage.getItem('workerId');
+            if (!workerId) {
+                alert("Please login as a worker first.");
+                window.location.href = '../user/index.html';
+                return;
+            }
+
+            // Default fallback locations
+            let workerLat = 9.158186;
+            let workerLng = 76.773261;
+            let workerName = "Worker";
+
+            // Fetch Worker Details for real location
+            try {
+                const workerRes = await fetch(`${API_BASE}/api/admin/workers`);
+                if (workerRes.ok) {
+                    const workers = await workerRes.json();
+                    const me = workers.find(w => w._id === workerId);
+                    if (me && me.currentLocation && me.currentLocation.coordinates) {
+                        if (me.currentLocation.coordinates[1] !== 0) {
+                            workerLat = me.currentLocation.coordinates[1];
+                            workerLng = me.currentLocation.coordinates[0];
+                            workerName = me.name;
+                        }
+                    }
+                }
+            } catch (e) { console.error("Error fetching worker location", e); }
 
             const map = L.map('map', { zoomControl: false }).setView([workerLat, workerLng], 13);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
@@ -234,19 +261,22 @@
 
             // Premium Worker Icon
             const truckIcon = L.divIcon({
-                html: `<div style="background: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 3px solid var(--dark-green); animation: markerPulse 2s infinite;">
-                        <i class="bi bi-truck text-dark" style="font-size: 20px;"></i>
-                       </div>`,
+                html: `<div
+        style="background: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 3px solid var(--dark-green); animation: markerPulse 2s infinite;">
+        <i class="bi bi-truck text-dark" style="font-size: 20px;"></i>
+    </div>`,
                 className: '',
                 iconSize: [40, 40],
                 iconAnchor: [20, 20]
             });
-            L.marker([workerLat, workerLng], { icon: truckIcon }).addTo(map).bindPopup("<b style='font-family: Outfit;'>Current Location</b><br>Adoor Depot").openPopup();
+            L.marker([workerLat, workerLng], { icon: truckIcon }).addTo(map).bindPopup(`<b
+        style='font-family: Outfit;'>${workerName}</b><br>Current Starting Point`).openPopup();
 
             const houseIcon = (index) => L.divIcon({
-                html: `<div style="background: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 3px solid var(--main-green);">
-                        <span style="font-family: Outfit; font-weight: 700; color: var(--dark-green); font-size: 14px;">${index}</span>
-                       </div>`,
+                html: `<div
+        style="background: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 3px solid var(--main-green);">
+        <span style="font-family: Outfit; font-weight: 700; color: var(--dark-green); font-size: 14px;">${index}</span>
+    </div>`,
                 className: '',
                 iconSize: [36, 36],
                 iconAnchor: [18, 18]
@@ -261,7 +291,7 @@
 
                 if (displayPickups.length > 0) {
                     const waypoints = [L.latLng(workerLat, workerLng)];
-                    const checkpointNames = ["Depot"];
+                    const checkpointNames = ["Current"];
 
                     displayPickups.forEach((p, idx) => {
                         if (p.location && p.location.coordinates) {
@@ -307,18 +337,18 @@
                                 const legTime = Math.round((legDist / 25) * 60); // Slower for last leg
 
                                 list.innerHTML += `
-                                    <div class="checkpoint-pill shadow-sm">
-                                        <div class="stop-number">${i + 1}</div>
-                                        <div class="flex-grow-1">
-                                            <div class="fw-bold text-dark small mb-0">${checkpointNames[i + 1]}</div>
-                                            <div class="text-muted" style="font-size: 0.65rem;">Next Stop</div>
-                                        </div>
-                                        <div class="text-end">
-                                            <div class="fw-bold text-success small mb-0">${legTime} min</div>
-                                            <div class="text-muted" style="font-size: 0.65rem;">${legDist} km</div>
-                                        </div>
-                                    </div>
-                                `;
+    <div class="checkpoint-pill shadow-sm">
+        <div class="stop-number">${i + 1}</div>
+        <div class="flex-grow-1">
+            <div class="fw-bold text-dark small mb-0">${checkpointNames[i + 1]}</div>
+            <div class="text-muted" style="font-size: 0.65rem;">Next Stop</div>
+        </div>
+        <div class="text-end">
+            <div class="fw-bold text-success small mb-0">${legTime} min</div>
+            <div class="text-muted" style="font-size: 0.65rem;">${legDist} km</div>
+        </div>
+    </div>
+    `;
                             });
                         });
                     }
@@ -328,12 +358,18 @@
                 // Fallback UI
                 document.getElementById('routePanel').style.display = 'block';
                 document.getElementById('checkpointsList').innerHTML = `
-                    <div class="checkpoint-pill">
-                        <div class="stop-number">1</div>
-                        <div class="flex-grow-1"><div class="fw-bold small">Manakala</div><div class="text-muted small">First stop</div></div>
-                        <div class="text-end"><div class="fw-bold text-success small">12 min</div><div class="text-muted small">4.2 km</div></div>
-                    </div>
-                `;
+    <div class="checkpoint-pill">
+        <div class="stop-number">1</div>
+        <div class="flex-grow-1">
+            <div class="fw-bold small">Manakala</div>
+            <div class="text-muted small">First stop</div>
+        </div>
+        <div class="text-end">
+            <div class="fw-bold text-success small">12 min</div>
+            <div class="text-muted small">4.2 km</div>
+        </div>
+    </div>
+    `;
             }
         });
     </script>
