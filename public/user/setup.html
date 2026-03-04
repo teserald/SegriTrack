@@ -7,20 +7,37 @@
     <title>SegriTrack | Account Setup</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --main-green: #01f386;
             --dark-green: #004d37;
+            --glass: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.3);
+            --neon-glow: 0 0 15px rgba(1, 243, 134, 0.4);
         }
 
         body {
-            background-color: #f8fafc;
-            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+            font-family: 'Outfit', sans-serif;
+            color: #1e293b;
         }
 
+        /* Navigation */
         .navbar {
-            background: white !important;
-            border-bottom: 1px solid #edf2f7;
+            background: rgba(0, 77, 55, 0.85) !important;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            color: white !important;
         }
 
         .setup-container {
@@ -71,15 +88,12 @@
             color: var(--dark-green);
         }
 
-        .map-box {
-            height: 180px;
+        #setupMap {
+            height: 250px;
             background: #f1f5f9;
             border-radius: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 2px dashed #cbd5e1;
-            cursor: pointer;
+            border: 2px solid #cbd5e1;
+            z-index: 10;
         }
 
         .otp-input {
@@ -103,7 +117,7 @@
 
     <nav class="navbar navbar-light py-3">
         <div class="container justify-content-center">
-            <a class="navbar-brand fw-bold text-success fs-3" href="index.html">🌱 SegriTrack</a>
+            <a class="navbar-brand fw-bold fs-3" href="index.html">🌱 SegriTrack</a>
         </div>
     </nav>
 
@@ -151,12 +165,9 @@
             <div id="step3" style="display: none;">
                 <h4 class="fw-bold mb-2">Default Address</h4>
                 <p class="text-muted small mb-4">Pin your home location for automated weekly pickups.</p>
-                <div class="map-box mb-3">
-                    <div class="text-center">
-                        <i class="bi bi-geo-alt-fill text-danger fs-2"></i><br>
-                        <span class="small text-muted">Detecting Location...</span>
-                    </div>
-                </div>
+                <div id="setupMap" class="mb-3"></div>
+                <p class="small text-muted mb-3 text-center"><i class="bi bi-cursor-fill me-1"></i> Drag marker to your
+                    doorstep</p>
                 <div class="mb-4">
                     <input type="text" class="form-control border-0 bg-light py-2 mb-2" placeholder="House Name / No.">
                     <input type="text" class="form-control border-0 bg-light py-2" placeholder="Landmark">
@@ -175,7 +186,47 @@
         </div>
     </footer>
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
+        let map, selectionMarker;
+        const defaultLoc = [9.1530, 76.7345]; // Adoor Central
+        let selectedCoords = null;
+
+        function initSetupMap() {
+            if (map) return;
+
+            map = L.map('setupMap', { zoomControl: false }).setView(defaultLoc, 16);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; SegriTrack'
+            }).addTo(map);
+
+            selectionMarker = L.marker(defaultLoc, {
+                draggable: true,
+                icon: L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div style="background-color: #01f386; width: 28px; height: 28px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); border: 3px solid #004d37; box-shadow: 0 0 15px rgba(1,243,134,0.7); display: flex; align-items: center; justify-content: center;"><i class="bi bi-house-fill" style="transform: rotate(45deg); color: #004d37; font-size: 14px;"></i></div>`,
+                    iconSize: [28, 28],
+                    iconAnchor: [14, 28]
+                })
+            }).addTo(map);
+
+            selectedCoords = defaultLoc;
+
+            selectionMarker.on('dragend', function (e) {
+                selectedCoords = [e.target.getLatLng().lat, e.target.getLatLng().lng];
+            });
+
+            map.on('click', function (e) {
+                selectionMarker.setLatLng(e.latlng);
+                selectedCoords = [e.latlng.lat, e.latlng.lng];
+            });
+
+            setTimeout(() => {
+                map.invalidateSize();
+                map.setView(defaultLoc, 16);
+            }, 300);
+        }
+
         function nextStep(step) {
             // Hide all steps
             document.getElementById('step1').style.display = 'none';
@@ -190,10 +241,20 @@
                 if (index + 1 === step) dot.classList.add('active');
                 else dot.classList.remove('active');
             });
+
+            if (step === 3) {
+                initSetupMap();
+            }
         }
 
         function finishSetup() {
             const role = document.getElementById('setupRole').value;
+
+            // Save coordinates to localStorage for demo persistence
+            if (selectedCoords) {
+                localStorage.setItem('homeLocation', JSON.stringify(selectedCoords));
+            }
+
             alert("Setup Complete! Welcome to the SegriTrack Community.");
 
             // Auto-login logic for seamless demo
@@ -203,8 +264,6 @@
                 window.location.href = '../worker/dashboard.html';
             } else {
                 localStorage.setItem('role', 'user');
-                // Use a fallback ID designed for "New User" experience if we had one
-                // For now, redirect to home. If not logged in, home will prompt specific login
                 window.location.href = 'home.html';
             }
         }

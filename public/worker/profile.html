@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Worker Profile</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --main-green: #01f386;
+            --dark-green: #004d37;
+            --glass: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.3);
+            --neon-glow: 0 0 15px rgba(1, 243, 134, 0.4);
+        }
+
+        body {
+            background: #f0f4f8;
+            font-family: 'Outfit', sans-serif;
+            padding-bottom: 100px;
+            color: #1e293b;
+        }
+
+        /* Glassmorphism Header */
+        .navbar {
+            background: rgba(0, 77, 55, 0.85) !important;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        /* Profile Banner */
+        .profile-banner {
+            background: linear-gradient(135deg, var(--dark-green) 0%, #002e21 100%);
+            padding: 60px 20px 80px;
+            text-align: center;
+            position: relative;
+            margin-bottom: -60px;
+            border-bottom-left-radius: 40px;
+            border-bottom-right-radius: 40px;
+        }
+
+        .profile-avatar {
+            width: 110px;
+            height: 110px;
+            border-radius: 40px;
+            border: 4px solid var(--main-green);
+            object-fit: cover;
+            margin-bottom: 15px;
+            box-shadow: var(--neon-glow);
+            background: white;
+            transform: rotate(-5deg);
+        }
+
+        .rating-chip {
+            background: rgba(1, 243, 134, 0.15);
+            color: var(--main-green);
+            backdrop-filter: blur(5px);
+            padding: 6px 16px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid rgba(1, 243, 134, 0.2);
+        }
+
+        /* Glass Settings Cards */
+        .glass-settings-card {
+            background: var(--glass);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 10px 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .settings-link {
+            display: flex;
+            align-items: center;
+            padding: 18px 0;
+            color: #334155;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+        }
+
+        .settings-link:last-child {
+            border-bottom: none;
+        }
+
+        .settings-link:hover {
+            color: var(--dark-green);
+            transform: translateX(5px);
+        }
+
+        .icon-circle {
+            width: 44px;
+            height: 44px;
+            background: white;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            color: var(--dark-green);
+            font-size: 1.25rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+            transition: 0.3s;
+        }
+
+        .settings-link:hover .icon-circle {
+            background: var(--main-green);
+            color: white;
+        }
+
+        /* Nav Unification */
+        .bottom-nav {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            border-radius: 25px;
+            display: flex;
+            padding: 12px 0;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            z-index: 2000;
+        }
+
+        .nav-item-bottom {
+            flex: 1;
+            text-align: center;
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 0.7rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item-bottom i {
+            display: block;
+            font-size: 1.4rem;
+            margin-bottom: 2px;
+        }
+
+        .nav-item-bottom.active {
+            color: var(--dark-green);
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="navbar navbar-dark py-2 sticky-top">
+        <div class="container d-flex justify-content-between align-items-center">
+            <span class="navbar-brand fw-bold mb-0 text-white" style="letter-spacing: -0.5px;">My Profile</span>
+            <button class="btn btn-outline-light btn-sm rounded-pill border-opacity-25"><i
+                    class="bi bi-gear-fill"></i></button>
+        </div>
+    </nav>
+
+    <div class="profile-banner">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/9/93/YT_Profile_icon.png" class="profile-avatar"
+            id="profileAvatar">
+        <h2 class="fw-bold mb-1 text-white" id="workerName" style="letter-spacing: -1px;">Worker Profile</h2>
+        <p class="text-white-50 fw-semibold mb-3" id="workerIdLabel" style="font-size: 0.8rem; letter-spacing: 1px;">ID:
+            LOADING...</p>
+        <div class="rating-chip">
+            <i class="bi bi-stars"></i> 4.8 PERFORMANCE
+        </div>
+    </div>
+
+    <div class="container px-4">
+        <!-- Quick Stats -->
+        <div class="glass-settings-card mt-0"
+            style="margin-top: -30px !important; border-top: 1px solid rgba(255,255,255,0.5);">
+            <div class="row text-center py-2">
+                <div class="col-6 border-end border-light">
+                    <h6 class="fw-bold mb-0 text-dark">Zone A</h6>
+                    <small class="text-muted fw-bold" style="font-size: 0.6rem;">HUB AREA</small>
+                </div>
+                <div class="col-6">
+                    <h6 class="fw-bold mb-0 text-dark">Partner</h6>
+                    <small class="text-muted fw-bold" style="font-size: 0.6rem;">RANK</small>
+                </div>
+            </div>
+        </div>
+
+        <h6 class="text-muted fw-bold small mt-4 mb-3 px-2" style="letter-spacing: 1px;">ACCOUNT SYSTEM</h6>
+        <div class="glass-settings-card">
+            <a href="#" class="settings-link">
+                <div class="icon-circle"><i class="bi bi-person-badge"></i></div>
+                <div class="flex-grow-1 fw-bold text-dark">Personal Details</div>
+                <i class="bi bi-chevron-right text-muted small"></i>
+            </a>
+            <a href="#" class="settings-link">
+                <div class="icon-circle"><i class="bi bi-shield-check"></i></div>
+                <div class="flex-grow-1 fw-bold text-dark">Security & Pin</div>
+                <i class="bi bi-chevron-right text-muted small"></i>
+            </a>
+            <a href="#" class="settings-link">
+                <div class="icon-circle"><i class="bi bi-wallet2"></i></div>
+                <div class="flex-grow-1 fw-bold text-dark">Payout History</div>
+                <i class="bi bi-chevron-right text-muted small"></i>
+            </a>
+        </div>
+
+        <h6 class="text-muted fw-bold small mt-4 mb-3 px-2" style="letter-spacing: 1px;">SYSTEM & SUPPORT</h6>
+        <div class="glass-settings-card">
+            <a href="#" class="settings-link">
+                <div class="icon-circle"><i class="bi bi-headset"></i></div>
+                <div class="flex-grow-1 fw-bold text-dark">24/7 Priority Support</div>
+                <i class="bi bi-chevron-right text-muted small"></i>
+            </a>
+            <a href="#" class="settings-link text-danger" onclick="logout()">
+                <div class="icon-circle bg-danger bg-opacity-10 text-danger"><i class="bi bi-power"></i></div>
+                <div class="flex-grow-1 fw-bold">Sign Out</div>
+                <i class="bi bi-box-arrow-right text-danger opacity-50"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Premium Bottom Nav -->
+    <div class="bottom-nav">
+        <a href="dashboard.html" class="nav-item-bottom">
+            <i class="bi bi-grid-1x2"></i>
+            <span>Board</span>
+        </a>
+        <a href="map.html" class="nav-item-bottom">
+            <i class="bi bi-map-fill"></i>
+            <span>Route</span>
+        </a>
+        <a href="history.html" class="nav-item-bottom">
+            <i class="bi bi-layers"></i>
+            <span>History</span>
+        </a>
+        <a href="profile.html" class="nav-item-bottom active">
+            <i class="bi bi-person-circle"></i>
+            <span>Me</span>
+        </a>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const name = localStorage.getItem('name');
+            const id = localStorage.getItem('workerId');
+
+            if (name) {
+                document.getElementById('workerName').innerText = name;
+            }
+            if (id) {
+                document.getElementById('workerIdLabel').innerText = `ID: ${id.substring(0, 8).toUpperCase()}`;
+            }
+        });
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = '/user/index.html';
+        }
+    </script>
+</body>
+
+</html>

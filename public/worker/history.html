@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Worker History</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --main-green: #01f386;
+            --dark-green: #004d37;
+            --glass: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.3);
+            --neon-glow: 0 0 15px rgba(1, 243, 134, 0.4);
+        }
+
+        body {
+            background: #f0f4f8;
+            font-family: 'Outfit', sans-serif;
+            padding-bottom: 100px;
+            color: #1e293b;
+        }
+
+        /* Glassmorphism Header */
+        .navbar {
+            background: rgba(0, 77, 55, 0.85) !important;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        /* Status Cards Glass */
+        .stats-header-premium {
+            background: linear-gradient(180deg, rgba(0, 77, 55, 0.1) 0%, rgba(240, 244, 248, 1) 100%);
+            padding: 40px 0 20px;
+            margin-bottom: 20px;
+        }
+
+        .glass-stat-card {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 15px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+            transition: transform 0.3s ease;
+        }
+
+        /* History Cards Premium */
+        .history-card {
+            border: 1px solid rgba(0, 0, 0, 0.03);
+            border-radius: 20px;
+            background: white;
+            transition: all 0.3s ease;
+            margin-bottom: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .history-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 5px;
+            background: #cbd5e1;
+        }
+
+        .history-card.excellent::before {
+            background: var(--main-green);
+        }
+
+        .history-card.poor::before {
+            background: #ef4444;
+        }
+
+        .history-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        }
+
+        .quality-tag {
+            font-size: 0.65rem;
+            padding: 4px 10px;
+            border-radius: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .bg-tag-excellent {
+            background: rgba(1, 243, 134, 0.1);
+            color: #065f46;
+        }
+
+        .bg-tag-average {
+            background: #fef9c3;
+            color: #854d0e;
+        }
+
+        .bg-tag-poor {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        /* Nav Unification */
+        .bottom-nav {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            border-radius: 25px;
+            display: flex;
+            padding: 12px 0;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            z-index: 2000;
+        }
+
+        .nav-item-bottom {
+            flex: 1;
+            text-align: center;
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 0.7rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item-bottom i {
+            display: block;
+            font-size: 1.4rem;
+            margin-bottom: 2px;
+        }
+
+        .nav-item-bottom.active {
+            color: var(--dark-green);
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="navbar navbar-dark py-2 sticky-top">
+        <div class="container d-flex justify-content-between align-items-center">
+            <span class="navbar-brand fw-bold mb-0 text-white" style="letter-spacing: -0.5px;">Job History</span>
+            <button class="btn btn-outline-light btn-sm rounded-pill border-opacity-25" onclick="location.reload()">
+                <i class="bi bi-arrow-clockwise"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Premium Stats Header -->
+    <div class="stats-header-premium">
+        <div class="container px-4">
+            <div class="row g-3">
+                <div class="col-4">
+                    <div class="glass-stat-card text-center h-100">
+                        <i class="bi bi-check2-all text-success mb-2 d-inline-block fs-4"></i>
+                        <h4 class="fw-bold mb-0 text-dark" id="totalCompleted">--</h4>
+                        <small class="text-muted fw-bold" style="font-size: 0.6rem;">DONE</small>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="glass-stat-card text-center h-100">
+                        <i class="bi bi-calendar-week text-primary mb-2 d-inline-block fs-4"></i>
+                        <h4 class="fw-bold mb-0 text-dark" id="thisWeek">--</h4>
+                        <small class="text-muted fw-bold" style="font-size: 0.6rem;">WEEKLY</small>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="glass-stat-card text-center h-100">
+                        <i class="bi bi-star-fill text-warning mb-2 d-inline-block fs-4"></i>
+                        <h4 class="fw-bold mb-0 text-dark">4.8</h4>
+                        <small class="text-muted fw-bold" style="font-size: 0.6rem;">RATING</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container px-4 pb-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h6 class="text-muted fw-bold small text-uppercase mb-0" style="letter-spacing: 1.5px;">Recent Mission Logs
+            </h6>
+            <span class="badge bg-white text-muted border border-light py-2 px-3 rounded-pill fw-bold"
+                style="font-size: 0.7rem;">ALL TIME</span>
+        </div>
+
+        <div id="historyList">
+            <div class="text-center text-muted py-5">
+                <div class="spinner-border spinner-border-sm text-success me-2"></div>
+                Decrypting mission logs...
+            </div>
+        </div>
+    </div>
+
+    <!-- Premium Bottom Nav -->
+    <div class="bottom-nav">
+        <a href="dashboard.html" class="nav-item-bottom">
+            <i class="bi bi-grid-1x2"></i>
+            <span>Board</span>
+        </a>
+        <a href="map.html" class="nav-item-bottom">
+            <i class="bi bi-map-fill"></i>
+            <span>Route</span>
+        </a>
+        <a href="history.html" class="nav-item-bottom active">
+            <i class="bi bi-layers"></i>
+            <span>History</span>
+        </a>
+        <a href="profile.html" class="nav-item-bottom">
+            <i class="bi bi-person-circle"></i>
+            <span>Me</span>
+        </a>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const container = document.getElementById('historyList');
+            try {
+                // We'll fetch all pickups and filter for completed ones
+                // In a real app, you'd want an API endpoint specifically for a worker's history
+                const res = await fetch('/api/pickup/assigned');
+                let pickups = [];
+                if (res.ok) {
+                    pickups = await res.json();
+                }
+
+                // Filter for completed or fallback to demo data if none exist
+                const completed = pickups.filter(p => p.status === 'completed');
+
+                if (completed.length === 0) {
+                    // Inject Demo History for visual demonstration
+                    renderDemoHistory(container);
+                    return;
+                }
+
+                document.getElementById('totalCompleted').innerText = completed.length;
+                document.getElementById('thisWeek').innerText = completed.length; // Simplify for demo
+
+                container.innerHTML = completed.map(p => {
+                    const quality = p.segregationDetails?.quality || 'Unknown';
+                    let qClass = 'bg-tag-average';
+                    let borderClass = '';
+                    if (quality === 'Excellent') { qClass = 'bg-tag-excellent'; borderClass = 'excellent'; }
+                    if (quality === 'Poor') { qClass = 'bg-tag-poor'; borderClass = 'poor'; }
+
+                    return `
+                    <div class="history-card ${borderClass} p-3 shadow-sm">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="fw-bold mb-0 text-truncate text-dark pe-3" style="letter-spacing: -0.3px;">${p.location.address}</h6>
+                            <span class="quality-tag ${qClass}">${quality}</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top border-light">
+                            <small class="text-muted fw-semibold" style="font-size: 0.7rem;"><i class="bi bi-calendar-event me-1"></i> ${new Date(p.date).toLocaleDateString()}</small>
+                            <span class="badge bg-success bg-opacity-10 text-success fw-bold p-1 rounded-circle" style="width: 22px; height: 22px;">
+                                <i class="bi bi-check" style="font-size: 14px;"></i>
+                            </span>
+                        </div>
+                    </div>`;
+                }).join('');
+
+            } catch (e) {
+                console.error(e);
+                renderDemoHistory(container);
+            }
+        });
+
+        function renderDemoHistory(container) {
+            document.getElementById('totalCompleted').innerText = '145';
+            document.getElementById('thisWeek').innerText = '12';
+
+            container.innerHTML = `
+                <div class="history-card excellent p-3 shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="fw-bold mb-0 text-dark">House #42, Green Valley</h6>
+                        <span class="quality-tag bg-tag-excellent">Excellent</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top border-light">
+                        <small class="text-muted fw-semibold" style="font-size: 0.7rem;"><i class="bi bi-calendar-event me-1"></i> Today, 11:30 AM</small>
+                        <span class="badge bg-success bg-opacity-10 text-success fw-bold p-1 rounded-circle" style="width: 22px; height: 22px;">
+                            <i class="bi bi-check" style="font-size: 14px;"></i>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="history-card p-3 shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="fw-bold mb-0 text-dark">Flat 4B, Sky Towers</h6>
+                        <span class="quality-tag bg-tag-average">Good</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top border-light">
+                        <small class="text-muted fw-semibold" style="font-size: 0.7rem;"><i class="bi bi-calendar-event me-1"></i> Yesterday, 09:15 AM</small>
+                        <span class="badge bg-success bg-opacity-10 text-success fw-bold p-1 rounded-circle" style="width: 22px; height: 22px;">
+                            <i class="bi bi-check" style="font-size: 14px;"></i>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="history-card poor p-3 shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="fw-bold mb-0 text-dark">Villa #7, Palm Grove</h6>
+                        <span class="quality-tag bg-tag-poor">Poor</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top border-light">
+                        <small class="text-muted fw-semibold" style="font-size: 0.7rem;"><i class="bi bi-calendar-event me-1"></i> Mon, 10:00 AM</small>
+                        <span class="badge bg-success bg-opacity-10 text-success fw-bold p-1 rounded-circle" style="width: 22px; height: 22px;">
+                            <i class="bi bi-check" style="font-size: 14px;"></i>
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <button class="btn btn-white bg-white text-muted fw-bold rounded-pill px-4 shadow-sm border border-light" style="font-size: 0.8rem;">
+                        LOAD MORE LOGS
+                    </button>
+                </div>
+            `;
+        }
+    </script>
+</body>
+
+</html>

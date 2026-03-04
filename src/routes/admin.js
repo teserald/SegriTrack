@@ -22,6 +22,16 @@ router.get('/stats', async (req, res) => {
     }
 });
 
+// Get All Workers' Locations for Live Map
+router.get('/workers/locations', async (req, res) => {
+    try {
+        const workers = await Worker.find({}, 'name currentLocation status');
+        res.json(workers);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Get All Users
 router.get('/users', async (req, res) => {
     try {

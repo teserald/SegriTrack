@@ -66,7 +66,7 @@ const seedData = async () => {
             email: 'worker@segritrack.com',
             password: 'password',
             assignedArea: 'Adoor-West',
-            status: 'on-route',
+            status: 'active',
             currentLocation: { type: 'Point', coordinates: [76.7456, 9.1629] }
         });
         console.log('Demo Worker created');
@@ -77,7 +77,7 @@ const seedData = async () => {
             email: 'worker1@segritrack.com',
             password: 'password',
             assignedArea: 'Adoor-East',
-            status: 'available',
+            status: 'active',
             currentLocation: { type: 'Point', coordinates: [76.7556, 9.1729] }
         });
         console.log('Generic Workers created');
@@ -92,6 +92,7 @@ const seedData = async () => {
             status: 'scheduled',
             location: {
                 address: '123 Green Way, Adoor',
+                type: 'Point',
                 coordinates: [76.7356, 9.1529]
             },
             qrCode: 'PICKUP-101'
@@ -106,6 +107,7 @@ const seedData = async () => {
             status: 'scheduled',
             location: {
                 address: 'Custom Spot, Adoor',
+                type: 'Point',
                 coordinates: [76.7556, 9.1729]
             },
             qrCode: 'PICKUP-102'

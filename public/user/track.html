@@ -11,52 +11,73 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <!-- Leaflet Routing Machine CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+
     <style>
         :root {
             --main-green: #01f386;
             --dark-green: #004d37;
+            --glass: rgba(255, 255, 255, 0.8);
+            --glass-border: rgba(255, 255, 255, 0.3);
         }
 
         body {
-            background-color: #f8fafc;
-            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+            font-family: 'Outfit', sans-serif;
         }
 
         /* Navigation */
         .navbar {
-            background: white !important;
-            border-bottom: 1px solid #edf2f7;
+            background: rgba(0, 77, 55, 0.85) !important;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar-brand {
+            color: white !important;
+            font-weight: 700;
         }
 
         .nav-link {
-            color: #4a5568 !important;
-            font-weight: 500;
+            color: rgba(255, 255, 255, 0.8) !important;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            color: var(--main-green) !important;
         }
 
         .nav-link.active {
-            color: var(--dark-green) !important;
-            font-weight: 700;
-            border-bottom: 2px solid var(--main-green);
+            border-bottom: 3px solid var(--main-green);
         }
 
         .profile-circle-nav {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            border-radius: 12px;
             object-fit: cover;
-            border: 1px solid var(--main-green);
+            border: 2px solid var(--main-green);
             margin-left: 10px;
             cursor: pointer;
+            transition: transform 0.3s ease;
         }
 
         /* Map Section */
         #map-container {
-            height: 55vh;
+            height: 60vh;
             width: 100%;
             background: #e2e8f0;
             position: relative;
-            border-radius: 0 0 25px 25px;
+            border-bottom-left-radius: 40px;
+            border-bottom-right-radius: 40px;
             overflow: hidden;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
         }
 
         .live-badge {
@@ -65,82 +86,115 @@
             left: 20px;
             background: rgba(220, 53, 69, 0.9);
             color: white;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 0.8rem;
+            padding: 6px 16px;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 0.75rem;
             z-index: 10;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
         }
 
         /* Info Card */
         .tracking-card {
-            margin-top: 20px;
+            margin-top: -60px;
             position: relative;
-            z-index: 100;
+            z-index: 1000;
         }
 
         .info-box {
-            background: white;
-            border-radius: 20px;
-            border: none;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 30px;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.1);
             padding: 25px;
         }
 
         .worker-avatar-icon {
-            font-size: 3rem;
-            color: #64748b;
+            font-size: 3.5rem;
+            color: var(--dark-green);
             margin-right: 15px;
+            opacity: 0.8;
         }
 
         .eta-box {
-            background: var(--dark-green);
+            background: linear-gradient(135deg, var(--dark-green) 0%, #002e21 100%);
             color: white;
-            border-radius: 15px;
-            padding: 15px;
+            border-radius: 20px;
+            padding: 18px;
             text-align: center;
+            box-shadow: 0 8px 25px rgba(0, 77, 55, 0.3);
         }
 
         .step-indicator {
             display: flex;
             justify-content: space-between;
             position: relative;
-            margin-top: 25px;
+            margin-top: 30px;
         }
 
         .step-item {
             text-align: center;
             z-index: 2;
             position: relative;
+            background: transparent;
+            width: 34px;
+            font-size: 1.3rem;
+        }
+
+        .step-item i {
             background: white;
-            width: 30px;
-            font-size: 1.2rem;
+            border-radius: 50%;
+            padding: 2px;
         }
 
         .step-line {
             position: absolute;
             top: 15px;
-            left: 0;
-            height: 2px;
-            background: #e2e8f0;
-            width: 100%;
+            left: 5%;
+            height: 3px;
+            background: rgba(0, 0, 0, 0.05);
+            width: 90%;
             z-index: 1;
+            border-radius: 10px;
         }
 
         .step-line-active {
             position: absolute;
             top: 15px;
-            left: 0;
-            height: 2px;
+            left: 5%;
+            height: 3px;
             background: var(--main-green);
-            width: 65%;
+            width: 55%;
             z-index: 1;
+            border-radius: 10px;
+            box-shadow: 0 0 10px var(--main-green);
         }
 
         .footer-dark {
             background: #002e21;
-            color: #888;
-            padding: 40px 0;
+            color: rgba(255, 255, 255, 0.4);
+            padding: 50px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        @keyframes markerPulse {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(1, 243, 134, 0.7);
+            }
+
+            70% {
+                transform: scale(1.1);
+                box-shadow: 0 0 0 15px rgba(1, 243, 134, 0);
+            }
+
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(1, 243, 134, 0);
+            }
         }
     </style>
 </head>
@@ -149,12 +203,12 @@
 
     <nav class="navbar navbar-expand-lg sticky-top py-3 shadow-sm">
         <div class="container">
-            <a class="navbar-brand fw-bold text-success fs-3" href="home.html">🌱 SegriTrack</a>
+            <a class="navbar-brand fw-bold fs-3" href="home.html">🌱 SegriTrack</a>
             <div class="collapse navbar-collapse" id="dashNav">
                 <ul class="navbar-nav ms-auto align-items-center">
                     <li class="nav-item"><a class="nav-link" href="home.html">Home</a></li>
                     <li class="nav-item"><a class="nav-link" href="leaderboard.html">Leaderboard</a></li>
-                    <li class="nav-item d-flex align-items-center">
+                    <li class="nav-item d-flex align-items-center ms-lg-3">
                         <a class="nav-link" href="profile.html">Profile</a>
                         <a href="profile.html">
                             <img src="https://upload.wikimedia.org/wikipedia/commons/9/93/YT_Profile_icon.png"
@@ -175,81 +229,172 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- Leaflet Routing Machine JS -->
     <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
+    <script id="socketScript"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // ==========================================
-            // CONFIGURATION: EDIT COORDINATES HERE
-            // ==========================================
-            const PICKUP_LOCATION = [9.127497, 76.715972];  // Manakala (User)
-            const WORKER_LOCATION = [9.158186, 76.773261];  // Adoor (Worker Start)
-            // ==========================================
+        // Use port 3000 if we are on Live Server (port 5500)
+        const API_BASE = (window.location.port === '5500' || window.location.port === '5501') ? 'http://localhost:3000' : '';
+
+        // Dynamically load socket.io script
+        document.getElementById('socketScript').src = API_BASE + '/socket.io/socket.io.js';
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Fetch User ID
+            const userId = localStorage.getItem('userId');
+            if (!userId) {
+                alert('Please login to track your pickup.');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Defaults if API fails
+            let PICKUP_LOCATION = [9.127497, 76.715972];
+            let WORKER_LOCATION = [9.158186, 76.773261];
+            let workerId = null;
+            let isWorkerOnline = false;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/pickup/user/${userId}/active`);
+                if (res.ok) {
+                    const pickup = await res.json();
+                    if (pickup) {
+                        if (pickup.location && pickup.location.coordinates) {
+                            PICKUP_LOCATION = [pickup.location.coordinates[1], pickup.location.coordinates[0]];
+                            // Update UI details
+                            document.querySelector('.info-box p.mb-0').innerText = pickup.location.address || 'Address Unavailable';
+                        }
+                        if (pickup.worker) {
+                            workerId = pickup.worker._id;
+                            if (pickup.worker.currentLocation && pickup.worker.currentLocation.coordinates) {
+                                // Validate not [0,0]
+                                if (pickup.worker.currentLocation.coordinates[1] !== 0) {
+                                    WORKER_LOCATION = [pickup.worker.currentLocation.coordinates[1], pickup.worker.currentLocation.coordinates[0]];
+                                }
+                            }
+                            // Update UI details
+                            const nameEl = document.querySelector('.info-box h5');
+                            if (nameEl) nameEl.innerText = pickup.worker.name;
+
+                            isWorkerOnline = pickup.worker.status === 'active' || pickup.worker.status === 'on-route';
+                        }
+                    }
+                }
+            } catch (e) { console.error("Error fetching active pickup routing data", e); }
 
             // Initialize Map
-            const map = L.map('map').setView(PICKUP_LOCATION, 13);
+            const map = L.map('map', { zoomControl: false }).setView(PICKUP_LOCATION, 13);
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap'
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; SegriTrack'
             }).addTo(map);
 
-            // Icons
-            const userIcon = L.icon({
-                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-                iconSize: [25, 41],
-                iconAnchor: [12, 41],
-                popupAnchor: [1, -34],
-                shadowSize: [41, 41]
+            // Premium Icons
+            const workerIcon = L.divIcon({
+                html: `<div style="background: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 3px solid var(--dark-green); animation: markerPulse 2s infinite;">
+                        <i class="bi bi-truck text-dark" style="font-size: 20px;"></i>
+                       </div>`,
+                className: '',
+                iconSize: [40, 40],
+                iconAnchor: [20, 20]
             });
 
-            const workerIcon = L.icon({
-                iconUrl: 'https://cdn-icons-png.flaticon.com/512/16000/16000543.png', // Specific Green User Icon
-                iconSize: [40, 40],
-                iconAnchor: [20, 20],
-                popupAnchor: [0, -20]
+            const userIcon = L.divIcon({
+                html: `<div style="background: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 3px solid #007bff;">
+                        <i class="bi bi-house-door-fill text-primary" style="font-size: 18px;"></i>
+                       </div>`,
+                className: '',
+                iconSize: [36, 36],
+                iconAnchor: [18, 18]
             });
 
             // 1. Static Pin: Pickup Location (User)
             L.marker(PICKUP_LOCATION, { icon: userIcon }).addTo(map)
-                .bindPopup("<b>Pickup Location</b><br>Manakala, Adoor").openPopup();
+                .bindPopup("<b>Pickup Location</b>").openPopup();
 
-            // 2. Static Pin: Worker Location (Worker)
-            const workerMarker = L.marker(WORKER_LOCATION, { icon: workerIcon }).addTo(map)
-                .bindPopup("<b>Waste Collector</b><br>En Route");
+            // 2. Dynamic Pin: Worker Location (Worker)
+            let workerMarker = L.marker(WORKER_LOCATION, { icon: workerIcon })
+                .bindPopup("<b style='font-family: Outfit;'>Waste Collector</b><br>En Route");
+
+            if (isWorkerOnline) {
+                workerMarker.addTo(map);
+            }
 
             // 3. Routing (Actual Road Path)
-            // This calculates the shortest path via roads using OSRM
-            const routingControl = L.Routing.control({
-                waypoints: [
-                    L.latLng(WORKER_LOCATION),
-                    L.latLng(PICKUP_LOCATION)
-                ],
-                routeWhileDragging: false,
-                draggableWaypoints: false,
-                addWaypoints: false,
-                createMarker: function () { return null; }, // Disable default markers (we use custom ones)
-                lineOptions: {
-                    styles: [{ color: '#004d37', opacity: 0.8, weight: 6 }] // Dark Green Path
-                },
-                show: false // Hide the list of turn-by-turn instructions
-            }).addTo(map);
+            let routingControl = null;
 
-            // Hide the routing container box entirely
-            routingControl.on('routesfound', function (e) {
-                const routes = e.routes;
-                const summary = routes[0].summary;
+            function calculateRoute(start, end) {
+                if (routingControl) map.removeControl(routingControl);
 
-                // Calculate ETA in minutes (summary.totalTime is seconds)
-                const timeMins = Math.ceil(summary.totalTime / 60);
-                document.getElementById('etaValue').innerText = timeMins + " mins";
+                routingControl = L.Routing.control({
+                    waypoints: [L.latLng(start), L.latLng(end)],
+                    routeWhileDragging: false,
+                    draggableWaypoints: false,
+                    addWaypoints: false,
+                    createMarker: function () { return null; },
+                    lineOptions: {
+                        styles: [
+                            { color: '#004d37', opacity: 0.7, weight: 8 },
+                            { color: '#01f386', opacity: 1, weight: 3 }
+                        ]
+                    },
+                    show: false
+                }).addTo(map);
 
-                // Keep the routing container hidden
-                const container = document.querySelector('.leaflet-routing-container');
-                if (container) container.style.display = 'none';
-            });
+                routingControl.on('routesfound', function (e) {
+                    const timeMins = Math.ceil(e.routes[0].summary.totalTime / 60);
+                    document.getElementById('etaValue').innerText = timeMins + " mins";
+                    const container = document.querySelector('.leaflet-routing-container');
+                    if (container) container.style.display = 'none';
+                });
+            }
 
-            // Also force dragging to update the route if we were to allow it (we don't here)
-            // NO MOVEMENT SIMULATION (As requested)
+            if (isWorkerOnline) {
+                calculateRoute(WORKER_LOCATION, PICKUP_LOCATION);
+            } else {
+                document.getElementById('etaValue').innerText = "Offline";
+                const nameEl = document.querySelector('.info-box h5');
+                if (nameEl) nameEl.innerHTML += ' <span class="badge bg-danger ms-2" style="font-size: 0.6rem;">Offline</span>';
+            }
+
+            // 4. Listen for realtime worker movement via Socket
+            try {
+                const socket = io(API_BASE);
+
+                socket.on('workerLocation', (data) => {
+                    // Check if this update is for OUR assigned worker
+                    if (workerId && data.workerId !== workerId) return;
+
+                    const newLocation = [data.lat, data.lng];
+
+                    if (!map.hasLayer(workerMarker)) {
+                        workerMarker.addTo(map);
+                    }
+                    workerMarker.setLatLng(newLocation);
+
+                    // Recalculate route and ETA if location changed significantly
+                    // (For demo purposes, we do it every time)
+                    calculateRoute(newLocation, PICKUP_LOCATION);
+                });
+
+                socket.on('workerStatusUpdate', (data) => {
+                    if (workerId && data.workerId !== workerId) return;
+
+                    if (!data.isOnline) {
+                        map.removeLayer(workerMarker);
+                        if (routingControl) map.removeControl(routingControl);
+                        document.getElementById('etaValue').innerText = "Offline";
+
+                        const nameEl = document.querySelector('.info-box h5');
+                        if (nameEl) nameEl.innerHTML += ' <span class="badge bg-danger ms-2" style="font-size: 0.6rem;">Offline</span>';
+                    } else {
+                        if (!map.hasLayer(workerMarker)) {
+                            workerMarker.addTo(map);
+                        }
+
+                        const badge = document.querySelector('.info-box .badge.bg-danger');
+                        if (badge) badge.remove();
+                    }
+                });
+            } catch (e) { console.error("Socket connection failed", e); }
         });
     </script>
 
@@ -280,7 +425,7 @@
                     <div class="row">
                         <div class="col-md-6 mb-3 mb-md-0 text-center text-md-start">
                             <p class="small text-muted mb-1 fw-bold">PICKUP ADDRESS</p>
-                            <p class="mb-0">Civil Station, Manakala, Adoor, Kerala</p>
+                            <p class="mb-0">College of Engineering Adoor, Manakala, Adoor, Kerala</p>
                         </div>
                         <div class="col-md-6 text-center text-md-end">
                             <button class="btn btn-outline-dark px-4 fw-bold rounded-3">

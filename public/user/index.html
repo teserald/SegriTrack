@@ -7,24 +7,43 @@
     <title>SegriTrack | Schedule • Track • Resolve</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --main-green: #01f386;
             --dark-green: #004d37;
             --footer-bg: #002e21;
+            --glass: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.3);
+            --neon-glow: 0 0 20px rgba(1, 243, 134, 0.4);
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Outfit', sans-serif;
+            background: #f0f4f8;
+            color: #1e293b;
+        }
+
+        /* Glassmorphism Header */
+        .navbar {
+            background: rgba(255, 255, 255, 0.85) !important;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
         }
 
         /* Hero Section */
         .hero {
-            background: linear-gradient(rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.7)),
+            background: linear-gradient(135deg, rgba(235, 248, 241, 0.95) 0%, rgba(204, 237, 218, 0.85) 100%),
                 url("https://upload.wikimedia.org/wikipedia/commons/e/ef/Idukki_Dam_Reservoir_Hillview_Pano_Kerala_Mar22_R16_05581-Pano.jpg");
             background-size: cover;
             background-position: center;
-            padding: 150px 0;
+            background-attachment: fixed;
+            padding: 160px 0;
+            position: relative;
         }
 
         .section-padding {
@@ -34,30 +53,56 @@
         .btn-green {
             background: var(--dark-green);
             color: white;
-            padding: 12px 35px;
-            border-radius: 8px;
-            font-weight: 600;
+            padding: 14px 40px;
+            border-radius: 50px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
             border: none;
-            transition: 0.3s;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 4px 15px rgba(0, 77, 55, 0.2);
         }
 
         .btn-green:hover {
             background: var(--main-green);
             color: var(--dark-green);
-            transform: translateY(-2px);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(1, 243, 134, 0.4);
         }
 
         .card-custom {
-            border: none;
-            border-radius: 20px;
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.05);
-            transition: 0.3s;
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
             height: 100%;
-            background: #fff;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-custom::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0, 77, 55, 0.1);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+            z-index: -1;
         }
 
         .card-custom:hover {
-            transform: translateY(-10px);
+            transform: translateY(-12px);
+            border-color: rgba(1, 243, 134, 0.3);
+        }
+
+        .card-custom:hover::after {
+            opacity: 1;
         }
 
         .icon-circle {
@@ -93,23 +138,26 @@
 
 <body>
 
-    <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top shadow-sm py-3">
+    <nav class="navbar navbar-expand-lg sticky-top py-3">
         <div class="container">
             <a class="navbar-brand fw-bold text-success fs-3" href="#">🌱 SegriTrack</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+            <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse"
+                data-bs-target="#mainNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="mainNav">
                 <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
-                    <li class="nav-item"><a class="nav-link px-3" href="#">Home</a></li>
-                    <li class="nav-item"><a class="nav-link px-3" href="#how-it-works">Services</a></li>
-                    <li class="nav-item"><a class="nav-link px-3" href="#features">About Us</a></li>
-                    <li class="nav-item"><a class="nav-link px-3" href="#contact">Contact</a></li>
+                    <li class="nav-item"><a class="nav-link px-3 fw-semibold" href="#">Home</a></li>
+                    <li class="nav-item"><a class="nav-link px-3 fw-semibold" href="#how-it-works">Services</a></li>
+                    <li class="nav-item"><a class="nav-link px-3 fw-semibold" href="#features">About Us</a></li>
+                    <li class="nav-item"><a class="nav-link px-3 fw-semibold" href="#contact">Contact</a></li>
                 </ul>
                 <div class="d-flex gap-2">
-                    <button class="btn btn-outline-success px-4" data-bs-toggle="modal"
+                    <button class="btn btn-outline-success px-4 rounded-pill border-2 fw-bold" data-bs-toggle="modal"
                         data-bs-target="#loginModal">Login</button>
-                    <button class="btn btn-success px-4" data-bs-toggle="modal" data-bs-target="#signupModal">Join
+                    <button class="btn btn-dark px-4 rounded-pill fw-bold shadow-sm"
+                        style="background: var(--dark-green) !important; border: none;" data-bs-toggle="modal"
+                        data-bs-target="#signupModal">Join
                         Us</button>
                 </div>
             </div>
@@ -128,10 +176,12 @@
         </div>
     </header>
 
-    <section id="how-it-works" class="section-padding bg-light">
+    <section id="how-it-works" class="section-padding bg-light position-relative">
         <div class="container text-center">
-            <h6 class="text-success fw-bold text-uppercase">Simple Process</h6>
-            <h2 class="fw-bold mb-5">How It Works</h2>
+            <span
+                class="badge bg-success-subtle text-success px-3 py-2 rounded-pill fw-bold text-uppercase mb-3 shadow-sm letter-spacing-1">Simple
+                Process</span>
+            <h2 class="display-5 fw-bold mb-5 text-dark">How It Works</h2>
             <div class="row g-4">
                 <div class="col-md-4">
                     <div class="card-custom p-4">
@@ -175,8 +225,10 @@
                         class="img-fluid rounded-4 shadow-lg" alt="Segregation">
                 </div>
                 <div class="col-lg-6 ps-lg-5">
-                    <h6 class="text-success fw-bold text-uppercase">Why Choose Us</h6>
-                    <h2 class="fw-bold mb-4">Making Waste Management Smarter</h2>
+                    <span
+                        class="badge bg-success-subtle text-success px-3 py-2 rounded-pill fw-bold text-uppercase mb-3 shadow-sm">Why
+                        Choose Us</span>
+                    <h2 class="display-6 fw-bold mb-4 text-dark">Making Waste Management Smarter</h2>
                     <div class="mb-4">
                         <div class="d-flex mb-3">
                             <i class="bi bi-check-circle-fill text-success fs-4 me-3"></i>
@@ -308,8 +360,9 @@
             errorMsg.innerText = "Logging in...";
 
             try {
+                const API_BASE = (window.location.port === '5500' || window.location.port === '5501') ? 'http://localhost:3000' : '';
                 // Call Backend to get REAL ObjectID
-                const res = await fetch('http://localhost:3000/api/auth/demo-login', {
+                const res = await fetch(`${API_BASE}/api/auth/demo-login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ role })
@@ -325,10 +378,10 @@
 
                 if (data.role === 'worker') {
                     localStorage.setItem('workerId', data.id); // Real ID
-                    window.location.href = '/public/worker/dashboard.html';
+                    window.location.href = API_BASE + '/worker/dashboard.html';
                 } else {
                     localStorage.setItem('userId', data.id); // Real ID
-                    window.location.href = '/public/user/home.html';
+                    window.location.href = API_BASE + '/user/home.html';
                 }
 
             } catch (e) {

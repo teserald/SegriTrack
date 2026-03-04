@@ -64,6 +64,23 @@
             width: 100%;
             border-radius: 15px;
         }
+
+        @keyframes markerPulse {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(1, 243, 134, 0.7);
+            }
+
+            70% {
+                transform: scale(1.1);
+                box-shadow: 0 0 0 15px rgba(1, 243, 134, 0);
+            }
+
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(1, 243, 134, 0);
+            }
+        }
     </style>
 </head>
 
@@ -136,11 +153,20 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
         // Initialize Map (Centered on Kochi/Adoor - using Kochi for now matching seed)
-        const map = L.map('liveMap').setView([9.9312, 76.2673], 13);
+        const map = L.map('liveMap', { zoomControl: false }).setView([9.9312, 76.2673], 13);
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; SegriTrack'
         }).addTo(map);
+
+        const truckIcon = L.divIcon({
+            html: `<div style="background: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 3px solid var(--dark-green); animation: markerPulse 2s infinite;">
+                    <i class="bi bi-truck text-dark" style="font-size: 20px;"></i>
+                   </div>`,
+            className: '',
+            iconSize: [40, 40],
+            iconAnchor: [20, 20]
+        });
 
         const markers = {};
         let socket;
@@ -151,9 +177,6 @@
                 const res = await fetch('/api/admin/stats');
                 const stats = await res.json();
 
-                // Update UI (Basic mapping of stats)
-                // document.getElementById('totalPickups').innerText = stats.totalPickups; 
-                // Need to add IDs to HTML elements first or use querySelector
                 const statCards = document.querySelectorAll('.stat-card h3');
                 if (statCards.length >= 4) {
                     statCards[0].innerText = stats.totalPickups || 0;
@@ -161,8 +184,27 @@
                     statCards[2].innerText = stats.segregationRate || '0%';
                     statCards[3].innerText = stats.pendingIssues || 0;
                 }
-
             } catch (e) { console.error("Stats fetch error", e); }
+
+            // Fetch Worker Locations
+            try {
+                const wRes = await fetch('/api/admin/workers/locations');
+                const workers = await wRes.json();
+
+                workers.forEach(w => {
+                    if (w.status === 'inactive') return; // Ignore offline workers
+
+                    if (w.currentLocation && w.currentLocation.coordinates && w.currentLocation.coordinates.length === 2) {
+                        const lng = w.currentLocation.coordinates[0];
+                        const lat = w.currentLocation.coordinates[1];
+                        // Avoid plotting 0,0 default locations
+                        if (lat !== 0 && lng !== 0) {
+                            markers[w._id] = L.marker([lat, lng], { icon: truckIcon }).addTo(map)
+                                .bindPopup(`<b style="font-family: Outfit;">Worker: ${w.name}</b><br>Status: ${w.status || 'Active'}`);
+                        }
+                    }
+                });
+            } catch (e) { console.error("Worker fetch error", e); }
 
             // Connect Socket
             try {
@@ -174,8 +216,17 @@
                     if (markers[workerId]) {
                         markers[workerId].setLatLng([lat, lng]);
                     } else {
-                        markers[workerId] = L.marker([lat, lng]).addTo(map)
-                            .bindPopup(`<b>Worker: ${workerId}</b><br>Status: Active`);
+                        // Creating marker if it doesn't exist (if they just went online)
+                        markers[workerId] = L.marker([lat, lng], { icon: truckIcon }).addTo(map)
+                            .bindPopup(`<b style="font-family: Outfit;">Worker Update</b><br>Status: Active`);
+                    }
+                });
+
+                socket.on('workerStatusUpdate', (data) => {
+                    const { workerId, isOnline } = data;
+                    if (!isOnline && markers[workerId]) {
+                        map.removeLayer(markers[workerId]);
+                        delete markers[workerId];
                     }
                 });
 

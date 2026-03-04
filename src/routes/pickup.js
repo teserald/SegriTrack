@@ -7,6 +7,31 @@ router.post('/schedule', async (req, res) => {
     try {
         const { userId, date, slot, type, location } = req.body;
 
+        if (!userId || !date || !slot) {
+            return res.status(400).json({ message: 'Missing required fields: userId, date, or slot' });
+        }
+
+        // 1. Get User Data for Address/Location
+        const User = require('../models/User');
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        let finalLocation = {
+            address: user.address?.street || 'Default Address',
+            type: 'Point',
+            coordinates: [0, 0]
+        };
+
+        if (type === 'special' && Array.isArray(location) && location.length === 2) {
+            // Special pickup uses map coordinates [lat, lng] -> [lng, lat]
+            finalLocation.coordinates = [location[1], location[0]];
+            finalLocation.address = 'Special Location'; // Optional: could use reverse geocoding
+        } else {
+            // Default pickup uses user's registered address
+            finalLocation.coordinates = user.address?.location?.coordinates || [76.7337, 9.1526];
+            finalLocation.address = `${user.address?.street || ''}, ${user.address?.city || ''}`;
+        }
+
         // Generate Simple QR (Mock)
         const qrCode = `PICKUP-${Math.floor(1000 + Math.random() * 9000)}`;
 
@@ -15,12 +40,14 @@ router.post('/schedule', async (req, res) => {
             date,
             slot,
             type,
-            location,
+            location: finalLocation,
             qrCode
         });
+
         await pickup.save();
         res.status(201).json({ message: 'Pickup scheduled', pickupId: pickup._id, qrCode });
     } catch (err) {
+        console.error("Scheduling Error:", err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -35,11 +62,59 @@ router.get('/user/:userId', async (req, res) => {
     }
 });
 
+// Get User's Active Pickup with Worker Location
+router.get('/user/:userId/active', async (req, res) => {
+    try {
+        let pickup = await Pickup.findOne({ user: req.params.userId, status: { $in: ['scheduled', 'in-progress'] } })
+            .populate('worker', 'name phone currentLocation status');
+
+        // Fallback for demo tracking if no active pickup has a worker attached yet
+        if (pickup && !pickup.worker) {
+            const Worker = require('../models/Worker');
+            const demoWorker = await Worker.findOne({ email: 'worker@segritrack.com' }) || await Worker.findOne();
+            // Attach a demo worker just for map tracking visualization
+            pickup = pickup.toObject();
+            pickup.worker = demoWorker;
+        }
+
+        res.json(pickup);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Worker: Get Assigned Pickups (Mock: fetches all scheduled for now)
 router.get('/assigned', async (req, res) => {
     try {
         const pickups = await Pickup.find({ status: 'scheduled' }); // Filter by date/worker in real app
         res.json(pickups);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Worker: Get Status Profile
+router.get('/worker/:id/status', async (req, res) => {
+    try {
+        const Worker = require('../models/Worker');
+        const worker = await Worker.findById(req.params.id).select('status');
+        if (!worker) return res.status(404).json({ message: 'Worker not found' });
+        res.json({ status: worker.status });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Worker: Update Online/Offline Status via REST
+router.put('/worker/:id/status', async (req, res) => {
+    try {
+        const Worker = require('../models/Worker');
+        const { isOnline } = req.body;
+        const newStatus = isOnline ? 'active' : 'inactive';
+        const worker = await Worker.findByIdAndUpdate(req.params.id, { status: newStatus }, { new: true });
+        if (!worker) return res.status(404).json({ message: 'Worker not found' });
+        console.log(`Worker ${req.params.id} status updated to: ${newStatus}`);
+        res.json({ status: worker.status });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

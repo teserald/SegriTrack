@@ -9,7 +9,8 @@ const PickupSchema = new mongoose.Schema({
     status: { type: String, enum: ['scheduled', 'in-progress', 'completed', 'missed'], default: 'scheduled' },
     location: {
         address: String,
-        coordinates: { type: [Number] }
+        type: { type: String, default: 'Point' },
+        coordinates: { type: [Number], default: [0, 0] }
     },
     segregationDetails: {
         quality: { type: String, enum: ['Excellent', 'Good', 'Average', 'Poor', 'Unsegregated'] },
