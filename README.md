@@ -33,7 +33,7 @@ Waste Collection and Segregation Monitoring System.
 
 ## Accessing Portals
 - **User Portal**: [http://localhost:3000/](http://localhost:3000/)
-- **Worker Portal**: [http://localhost:3000/worker/login.html](http://localhost:3000/worker/login.html)
+- **Worker Portal**: [http://localhost:3000](http://localhost:3000)
 - **Admin Portal**: [http://localhost:3000/admin/login.html](http://localhost:3000/admin/login.html)
 
 ## Features
@@ -41,5 +41,3 @@ Waste Collection and Segregation Monitoring System.
 - **QR Verification**: Verify pickups and ensuring attendance.
 - **Segregation Rewards**: Rate segregation quality and award points.
 =======
-# SegriTrack
->>>>>>> 847ae2006d445e3ea65721d5752dd07413a4103d
