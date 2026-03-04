@@ -38,6 +38,38 @@ router.post('/schedule', async (req, res) => {
             finalLocation.address = `${user.address?.street || ''}, ${user.address?.city || ''}`;
         }
 
+        // 2. Geofencing Restriction Check
+        const Worker = require('../models/Worker');
+        const activeWorkers = await Worker.find({ status: { $in: ['active', 'on-route'] } });
+
+        let workerInRange = false;
+        if (activeWorkers.length > 0) {
+            // Helper: Haversine distance in km
+            const getDistance = (c1, c2) => {
+                const R = 6371;
+                const dLat = (c2[1] - c1[1]) * Math.PI / 180;
+                const dLon = (c2[0] - c1[0]) * Math.PI / 180;
+                const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                    Math.cos(c1[1] * Math.PI / 180) * Math.cos(c2[1] * Math.PI / 180) *
+                    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+            };
+
+            for (const worker of activeWorkers) {
+                if (worker.currentLocation?.coordinates) {
+                    const dist = getDistance(finalLocation.coordinates, worker.currentLocation.coordinates);
+                    if (dist <= 10) { // 10 km max radius
+                        workerInRange = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!workerInRange) {
+            return res.status(400).json({ message: 'No worker available in your area (within 10km).' });
+        }
+
         // Generate Simple QR (Mock)
         const qrCode = `PICKUP-${Math.floor(1000 + Math.random() * 9000)}`;
 
@@ -89,12 +121,85 @@ router.get('/user/:userId/active', async (req, res) => {
     }
 });
 
-// Worker: Get Assigned Pickups (Mock: fetches all scheduled for now)
+// Worker: Get Assigned Pickups with Geofencing and Route Optimization
 router.get('/assigned', async (req, res) => {
     try {
-        const pickups = await Pickup.find({ status: 'scheduled' }); // Filter by date/worker in real app
+        const { workerId, radiusKm = 10 } = req.query;
+        // Fetch all scheduled pickups
+        let pickups = await Pickup.find({ status: 'scheduled' }).populate('user', 'name phone');
+
+        // Find worker's current location to act as the starting point
+        let workerLocation = null;
+        if (workerId) {
+            const Worker = require('../models/Worker');
+            const worker = await Worker.findById(workerId);
+            if (worker && worker.currentLocation?.coordinates) {
+                workerLocation = worker.currentLocation.coordinates; // [lng, lat]
+            }
+        }
+
+        if (workerLocation) {
+            // Helper: Haversine distance in km
+            const getDistance = (c1, c2) => {
+                const R = 6371;
+                const dLat = (c2[1] - c1[1]) * Math.PI / 180;
+                const dLon = (c2[0] - c1[0]) * Math.PI / 180;
+                const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                    Math.cos(c1[1] * Math.PI / 180) * Math.cos(c2[1] * Math.PI / 180) *
+                    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+            };
+
+            // 1. Geofencing: Filter out pickups outside the radius
+            const filteredPickups = [];
+            for (const p of pickups) {
+                if (!p.location?.coordinates || (p.location.coordinates[0] === 0 && p.location.coordinates[1] === 0)) continue;
+
+                const dist = getDistance(workerLocation, p.location.coordinates);
+                if (dist <= parseFloat(radiusKm)) {
+                    let pObj = p.toObject();
+                    pObj.directDistance = dist.toFixed(2);
+                    filteredPickups.push(pObj);
+                }
+            }
+
+            // 2. Route Optimization (Nearest Neighbor TSP)
+            if (filteredPickups.length > 0) {
+                let sortedPickups = [];
+                let unvisited = [...filteredPickups];
+                let currentLocation = workerLocation;
+
+                while (unvisited.length > 0) {
+                    let nearestIdx = 0;
+                    let minDistance = Infinity;
+
+                    // Find nearest unvisited node from current location
+                    for (let i = 0; i < unvisited.length; i++) {
+                        const dist = getDistance(currentLocation, unvisited[i].location.coordinates);
+                        if (dist < minDistance) {
+                            minDistance = dist;
+                            nearestIdx = i;
+                        }
+                    }
+
+                    // Move to nearest node
+                    const nearestPickup = unvisited[nearestIdx];
+                    nearestPickup.routingOrder = sortedPickups.length + 1; // 1-based index
+                    nearestPickup.distanceFromPrev = minDistance.toFixed(2); // km from last stop
+
+                    sortedPickups.push(nearestPickup);
+                    currentLocation = nearestPickup.location.coordinates;
+                    unvisited.splice(nearestIdx, 1);
+                }
+                pickups = sortedPickups; // Return the optimally sorted list
+            } else {
+                pickups = []; // Empty if none within radius
+            }
+        }
+
         res.json(pickups);
     } catch (err) {
+        console.error("Assigned Pickups Optimization Error:", err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -158,6 +263,28 @@ router.put('/:id/status', async (req, res) => {
         res.json(pickup);
     } catch (err) {
         console.error("Status Update Error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Worker: Arrived at Pickup (Sync Location early)
+router.put('/:id/arrive', async (req, res) => {
+    try {
+        const { workerId } = req.body;
+        const pickup = await Pickup.findById(req.params.id);
+        if (!pickup) return res.status(404).json({ message: 'Pickup not found' });
+
+        if (workerId && pickup.location?.coordinates && (pickup.location.coordinates[0] !== 0 || pickup.location.coordinates[1] !== 0)) {
+            const Worker = require('../models/Worker');
+            await Worker.findByIdAndUpdate(workerId, {
+                'currentLocation.coordinates': pickup.location.coordinates,
+                'currentLocation.lastUpdated': new Date()
+            });
+            console.log(`[SYNC] Worker ${workerId} ARRIEVED at pickup: ${pickup.location.address}`);
+        }
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Arrive Update Error:", err);
         res.status(500).json({ error: err.message });
     }
 });

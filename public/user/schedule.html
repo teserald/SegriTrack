@@ -351,7 +351,7 @@
                     document.getElementById('genID').innerText = "#ST-" + (data.qrCode ? data.qrCode.split('-')[1] : Math.floor(10000 + Math.random() * 90000));
                     document.getElementById('confirmOverlay').style.display = 'block';
                 } else {
-                    alert("Scheduling failed: " + (data.message || data.error));
+                    alert("Scheduling failed: " + (data.message || data.error || "Unknown error"));
                     btn.innerText = originalText;
                     btn.disabled = false;
                 }

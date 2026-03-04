@@ -48,24 +48,71 @@
             z-index: 1;
         }
 
-        /* Floating Overlays */
         .route-overlay {
             position: absolute;
-            bottom: 100px;
-            left: 20px;
-            right: 20px;
-            z-index: 1000;
-            animation: slideUp 0.6s ease-out;
+            bottom: 0px;
+            left: 0;
+            right: 0;
+            z-index: 500;
+            /* Container styling */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border-top-left-radius: 25px;
+            border-top-right-radius: 25px;
+            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.15);
+
+            /* Draggable parameters */
+            height: 60vh;
+            /* Total height of sheet */
+            transform: translateY(calc(60vh - 120px));
+            /* Initial peek height (120px visible above bottom nav) */
+            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            will-change: transform;
+
+            display: flex;
+            flex-direction: column;
+            padding-bottom: 80px;
+            /* Space for bottom nav */
+        }
+
+        .route-overlay.dragging {
+            transition: none;
+            /* Disable transition while actively dragging */
+        }
+
+        .drag-handle-container {
+            width: 100%;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: grab;
+            flex-shrink: 0;
+        }
+
+        .drag-handle-container:active {
+            cursor: grabbing;
+        }
+
+        .drag-pill {
+            width: 40px;
+            height: 5px;
+            background: #cbd5e1;
+            border-radius: 5px;
+        }
+
+        .sheet-content {
+            padding: 0 20px;
+            overflow-y: auto;
+            flex-grow: 1;
         }
 
         .glass-panel {
-            background: var(--glass);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border: 1px solid var(--glass-border);
-            border-radius: 25px;
-            padding: 15px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            /* Removed padding and borders as overlay handles it now */
+            background: transparent;
+            box-shadow: none;
+            border: none;
         }
 
         .checkpoint-pill {
@@ -186,15 +233,20 @@
 
     <div id="map"></div>
 
-    <!-- Route Intelligence Panel -->
+    <!-- Route Intelligence Panel (Bottom Sheet) -->
     <div class="route-overlay" id="routePanel" style="display: none;">
-        <div class="glass-panel">
-            <div class="d-flex justify-content-between align-items-center mb-3 px-1">
-                <h6 class="fw-bold mb-0 text-dark" style="letter-spacing: -0.5px;">Navigation Intelligence</h6>
-                <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2">LIVE</span>
-            </div>
-            <div id="checkpointsList">
-                <!-- Dynamic Checkpoints -->
+        <div class="drag-handle-container" id="dragHandleArea">
+            <div class="drag-pill"></div>
+        </div>
+        <div class="sheet-content">
+            <div class="glass-panel">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0 text-dark" style="letter-spacing: -0.5px;">Navigation Intelligence</h6>
+                    <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2">LIVE</span>
+                </div>
+                <div id="checkpointsList">
+                    <!-- Dynamic Checkpoints -->
+                </div>
             </div>
         </div>
     </div>
@@ -283,11 +335,11 @@
             });
 
             try {
-                const res = await fetch('/api/pickup/assigned');
+                const res = await fetch(`${API_BASE}/api/pickup/assigned?workerId=${workerId}&radiusKm=10`);
                 let pickups = await res.json();
 
-                // Limit to show "Intelligence" for first two households as requested
-                const displayPickups = pickups.slice(0, 2);
+                // Show top optimized stops
+                const displayPickups = pickups.slice(0, 5);
 
                 if (displayPickups.length > 0) {
                     const waypoints = [L.latLng(workerLat, workerLng)];
@@ -355,10 +407,9 @@
                 }
             } catch (error) {
                 console.error("Map Error:", error);
-                // Fallback UI
-                document.getElementById('routePanel').style.display = 'block';
+                document.getElementById('routePanel').style.display = 'flex';
                 document.getElementById('checkpointsList').innerHTML = `
-    <div class="checkpoint-pill">
+    <div class="checkpoint-pill shadow-sm">
         <div class="stop-number">1</div>
         <div class="flex-grow-1">
             <div class="fw-bold small">Manakala</div>
@@ -371,6 +422,108 @@
     </div>
     `;
             }
+
+            // Bottom Sheet Drag Logic
+            const sheet = document.getElementById('routePanel');
+            const handler = document.getElementById('dragHandleArea');
+
+            let isDragging = false;
+            let startY;
+            let currentY;
+
+            // Calculate heights
+            // Total height of the sheet (60vh)
+            const sheetHeight = window.innerHeight * 0.6;
+            // The position when fully collapsed (only 120px showing above the bottom)
+            const collapsedY = sheetHeight - 120;
+            // The position when fully expanded
+            const expandedY = 0;
+
+            // Current transform value
+            let transformY = collapsedY;
+
+            function onDragStart(e) {
+                // Return if clicking links/buttons
+                if (e.target.closest('a') || e.target.closest('button')) return;
+
+                isDragging = true;
+                startY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+                sheet.classList.add('dragging');
+            }
+
+            function onDragMove(e) {
+                if (!isDragging) return;
+                e.preventDefault(); // Prevent scrolling while dragging the sheet
+
+                currentY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+                const deltaY = currentY - startY;
+
+                // Calculate new position
+                let newY = transformY + deltaY;
+
+                // Boundaries (don't drag above expandedY or below collapsedY)
+                if (newY < expandedY) newY = expandedY;
+                if (newY > collapsedY) newY = collapsedY;
+
+                sheet.style.transform = `translateY(${newY}px)`;
+            }
+
+            function onDragEnd(e) {
+                if (!isDragging) return;
+                isDragging = false;
+                sheet.classList.remove('dragging');
+
+                // Snap logic based on where it was released
+                const currentTransform = parseFloat(sheet.style.transform.replace('translateY(', '').replace('px)', ''));
+
+                const threshold = (collapsedY - expandedY) / 2;
+
+                if (currentTransform > threshold) {
+                    // Snap to collapsed
+                    transformY = collapsedY;
+                } else {
+                    // Snap to expanded
+                    transformY = expandedY;
+                }
+
+                sheet.style.transform = `translateY(${transformY}px)`;
+            }
+
+            // Attach listeners to the handle area (and optionally the whole sheet header)
+            handler.addEventListener('touchstart', onDragStart, { passive: false });
+            handler.addEventListener('touchmove', onDragMove, { passive: false });
+            window.addEventListener('touchend', onDragEnd);
+
+            handler.addEventListener('mousedown', onDragStart);
+            window.addEventListener('mousemove', onDragMove);
+            window.addEventListener('mouseup', onDragEnd);
+
+            // Continuous Mouse wheel scroll logic
+            const sheetContent = sheet.querySelector('.sheet-content');
+
+            sheet.addEventListener('wheel', (e) => {
+                let shouldPreventDefault = false;
+
+                if (transformY === collapsedY) {
+                    // If collapsed, scrolling down (deltaY > 0) expands the sheet
+                    if (e.deltaY > 0) {
+                        transformY = expandedY;
+                        shouldPreventDefault = true;
+                    }
+                } else if (transformY === expandedY) {
+                    // If expanded, normal scrolling happens.
+                    // But if at the top of the list and scrolling up (deltaY < 0), collapse the sheet.
+                    if (e.deltaY < 0 && sheetContent.scrollTop <= 0) {
+                        transformY = collapsedY;
+                        shouldPreventDefault = true;
+                    }
+                }
+
+                if (shouldPreventDefault) {
+                    e.preventDefault();
+                    sheet.style.transform = `translateY(${transformY}px)`;
+                }
+            }, { passive: false });
         });
     </script>
 </body>

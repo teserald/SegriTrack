@@ -421,7 +421,12 @@
         // ===== FETCH PICKUPS =====
         async function fetchPickups() {
             try {
-                const res = await fetch(`${API_BASE}/api/pickup/assigned`);
+                const workerId = localStorage.getItem('workerId');
+                const url = workerId
+                    ? `${API_BASE}/api/pickup/assigned?workerId=${workerId}&radiusKm=10`
+                    : `${API_BASE}/api/pickup/assigned`;
+
+                const res = await fetch(url);
                 if (!res.ok) {
                     throw new Error(`HTTP error! status: ${res.status}`);
                 }
@@ -483,6 +488,11 @@
                 <i class="bi bi-clock me-1 text-danger small"></i>
                 <span class="fw-bold" style="font-size: 0.7rem;">${targetTime}</span>
             </div>
+            ${activeTask.directDistance ? `
+            <div class="glass-card py-1 px-2 d-flex align-items-center bg-white border border-light" style="border-radius: 10px;">
+                <i class="bi bi-cursor me-1 text-success small"></i>
+                <span class="fw-bold" style="font-size: 0.7rem;">${activeTask.directDistance} km away</span>
+            </div>` : ''}
         </div>
 
         <div class="d-flex gap-2 mt-3 pt-2 border-top border-light">
@@ -539,8 +549,21 @@
         // ===== MODAL & QUALITY =====
         let selectedQuality = '';
 
-        function openAction(id) {
+        async function openAction(id) {
             currentPickupId = id;
+
+            // Sync location on arrive so routing from here is accurate
+            const workerId = localStorage.getItem('workerId');
+            if (workerId) {
+                try {
+                    await fetch(`${API_BASE}/api/pickup/${id}/arrive`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ workerId })
+                    });
+                } catch (e) { console.error('Error syncing arrive location', e); }
+            }
+
             if (modal) modal.show();
         }
 
