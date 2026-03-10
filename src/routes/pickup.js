@@ -121,6 +121,19 @@ router.get('/user/:userId/active', async (req, res) => {
     }
 });
 
+// Worker: Get Completed Pickups (History)
+router.get('/worker/:workerId/history', async (req, res) => {
+    try {
+        const history = await Pickup.find({ 
+            worker: req.params.workerId, 
+            status: 'completed' 
+        }).sort({ date: -1 }).populate('user', 'name'); // sort by newest first
+        res.json(history);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Worker: Get Assigned Pickups with Geofencing and Route Optimization
 router.get('/assigned', async (req, res) => {
     try {
@@ -163,35 +176,125 @@ router.get('/assigned', async (req, res) => {
                 }
             }
 
-            // 2. Route Optimization (Nearest Neighbor TSP)
+            // 2. Route Optimization (Time-Slot Priority + Exact TSP/NN Fallback)
             if (filteredPickups.length > 0) {
-                let sortedPickups = [];
-                let unvisited = [...filteredPickups];
-                let currentLocation = workerLocation;
+                // Parse and Group Pickups Chronologically
+                const timeGroups = {};
+                filteredPickups.forEach(p => {
+                    const slotText = p.slot || 'ASAP';
+                    let sortKey = 9999; // Default late
 
-                while (unvisited.length > 0) {
-                    let nearestIdx = 0;
-                    let minDistance = Infinity;
-
-                    // Find nearest unvisited node from current location
-                    for (let i = 0; i < unvisited.length; i++) {
-                        const dist = getDistance(currentLocation, unvisited[i].location.coordinates);
-                        if (dist < minDistance) {
-                            minDistance = dist;
-                            nearestIdx = i;
+                    if (slotText !== 'ASAP') {
+                        // Extract e.g., "09:00 AM" or "01:00 PM"
+                        const match = slotText.match(/(\d{2}):(\d{2})\s*(AM|PM)/i);
+                        if (match) {
+                            let [, h, m, meridiem] = match;
+                            h = parseInt(h);
+                            if (meridiem.toUpperCase() === 'PM' && h !== 12) h += 12;
+                            if (meridiem.toUpperCase() === 'AM' && h === 12) h = 0;
+                            sortKey = h * 100 + parseInt(m);
                         }
                     }
 
-                    // Move to nearest node
-                    const nearestPickup = unvisited[nearestIdx];
-                    nearestPickup.routingOrder = sortedPickups.length + 1; // 1-based index
-                    nearestPickup.distanceFromPrev = minDistance.toFixed(2); // km from last stop
+                    if (!timeGroups[sortKey]) timeGroups[sortKey] = [];
+                    timeGroups[sortKey].push(p);
+                });
 
-                    sortedPickups.push(nearestPickup);
-                    currentLocation = nearestPickup.location.coordinates;
-                    unvisited.splice(nearestIdx, 1);
+                // Sort the groups chronologically
+                const sortedKeys = Object.keys(timeGroups).map(Number).sort((a, b) => a - b);
+
+                let sortedPickups = [];
+                let globalStartLocation = workerLocation;
+
+                // Process each time slot group sequentially
+                for (const key of sortedKeys) {
+                    const groupPickups = timeGroups[key];
+                    const points = [globalStartLocation, ...groupPickups.map(p => p.location.coordinates)];
+                    const n = points.length;
+
+                    if (n === 1) continue; // Array only contains start location
+
+                    // Distance Matrix for this group
+                    const distMatrix = Array(n).fill(null).map(() => Array(n).fill(0));
+                    for (let i = 0; i < n; i++) {
+                        for (let j = 0; j < n; j++) {
+                            if (i !== j) {
+                                distMatrix[i][j] = getDistance(points[i], points[j]);
+                            }
+                        }
+                    }
+
+                    if (groupPickups.length <= 10) {
+                        // EXACT TSP (Branch and Bound / DFS) for this group
+                        let bestRoute = [];
+                        let bestDistance = Infinity;
+
+                        const dfs = (currNode, visited, currentDist, path) => {
+                            if (visited === (1 << n) - 1) {
+                                if (currentDist < bestDistance) {
+                                    bestDistance = currentDist;
+                                    bestRoute = [...path];
+                                }
+                                return;
+                            }
+
+                            for (let nextNode = 1; nextNode < n; nextNode++) {
+                                if ((visited & (1 << nextNode)) === 0) {
+                                    const newDist = currentDist + distMatrix[currNode][nextNode];
+                                    if (newDist < bestDistance) {
+                                        path.push(nextNode);
+                                        dfs(nextNode, visited | (1 << nextNode), newDist, path);
+                                        path.pop();
+                                    }
+                                }
+                            }
+                        };
+
+                        dfs(0, 1, 0, []);
+
+                        let lastLocation = globalStartLocation;
+                        for (let i = 0; i < bestRoute.length; i++) {
+                            const pickup = groupPickups[bestRoute[i] - 1]; // index offset
+                            const distToThis = getDistance(lastLocation, pickup.location.coordinates);
+
+                            pickup.routingOrder = sortedPickups.length + 1;
+                            pickup.distanceFromPrev = distToThis.toFixed(2);
+
+                            sortedPickups.push(pickup);
+                            lastLocation = pickup.location.coordinates;
+                        }
+                        globalStartLocation = lastLocation; // Carry over to next time slot group
+
+                    } else {
+                        // FALLBACK: Nearest Neighbor for large groups
+                        let unvisited = [...groupPickups];
+                        let currentLocation = globalStartLocation;
+
+                        while (unvisited.length > 0) {
+                            let nearestIdx = 0;
+                            let minDistance = Infinity;
+
+                            for (let i = 0; i < unvisited.length; i++) {
+                                const dist = getDistance(currentLocation, unvisited[i].location.coordinates);
+                                if (dist < minDistance) {
+                                    minDistance = dist;
+                                    nearestIdx = i;
+                                }
+                            }
+
+                            const nearestPickup = unvisited[nearestIdx];
+                            nearestPickup.routingOrder = sortedPickups.length + 1;
+                            nearestPickup.distanceFromPrev = minDistance.toFixed(2);
+
+                            sortedPickups.push(nearestPickup);
+                            currentLocation = nearestPickup.location.coordinates;
+                            unvisited.splice(nearestIdx, 1);
+                        }
+                        globalStartLocation = currentLocation; // Carry over
+                    }
                 }
-                pickups = sortedPickups; // Return the optimally sorted list
+
+                pickups = sortedPickups;
             } else {
                 pickups = []; // Empty if none within radius
             }

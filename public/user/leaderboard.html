@@ -192,25 +192,8 @@
     <div class="container pt-5">
         <h2 class="text-center fw-bold mb-4">Top Warriors</h2>
 
-        <div class="podium-container">
-            <div class="podium-item">
-                <i class="bi bi-person-circle avatar-icon"></i>
-                <div class="fw-bold small">User 2</div>
-                <div class="text-success small fw-bold">540 Pts</div>
-                <div class="reward-tag">₹500</div>
-            </div>
-            <div class="podium-item" style="transform: scale(1.1);">
-                <i class="bi bi-person-circle avatar-icon text-warning"></i>
-                <div class="fw-bold">User 1</div>
-                <div class="text-success small fw-bold">585 Pts</div>
-                <div class="reward-tag">₹1,000</div>
-            </div>
-            <div class="podium-item">
-                <i class="bi bi-person-circle avatar-icon"></i>
-                <div class="fw-bold small">User 3</div>
-                <div class="text-success small fw-bold">510 Pts</div>
-                <div class="reward-tag">₹250</div>
-            </div>
+        <div class="podium-container" id="podiumArea">
+            <div class="text-center text-muted py-4 w-100">Loading podium...</div>
         </div>
 
         <div class="leaderboard-list mb-4">
@@ -267,6 +250,19 @@
                         }
                         listContainer.innerHTML = html;
 
+                        // Populate sticky footer with current user's rank
+                        const userId = localStorage.getItem('userId');
+                        if (userId) {
+                            try {
+                                const profileRes = await fetch(`http://localhost:3000/api/user/profile/${userId}`);
+                                const currentUser = await profileRes.json();
+                                const rankIdx = leaders.findIndex(l => l._id === userId);
+                                const rank = rankIdx >= 0 ? rankIdx + 1 : leaders.length + 1;
+                                document.getElementById('userRankDisplay').innerText = `#${rank}`;
+                                document.getElementById('userPointsDisplay').innerText = `${currentUser.points.total} Points`;
+                            } catch (e) { console.error('Rank fetch error', e); }
+                        }
+
                     } catch (e) {
                         console.error(e);
                         listContainer.innerHTML = '<div class="p-4 text-center text-danger">Failed to load leaderboard.</div>';
@@ -279,12 +275,12 @@
     <div class="user-rank-sticky">
         <div class="container d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center">
-                <span class="fw-bold me-3">#28</span>
+                <span class="fw-bold me-3" id="userRankDisplay">--</span>
                 <img src="https://upload.wikimedia.org/wikipedia/commons/9/93/YT_Profile_icon.png" width="30"
                     class="rounded-circle me-2">
                 <span class="fw-bold">Your Current Rank</span>
             </div>
-            <div class="fw-bold">170 Points</div>
+            <div class="fw-bold" id="userPointsDisplay">-- Points</div>
         </div>
     </div>
 

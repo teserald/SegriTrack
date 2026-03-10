@@ -176,7 +176,7 @@
                     <div id="defaultView">
                         <div class="address-display" style="border-radius: 12px; background: #f8fafc;">
                             <p class="mb-1 fw-bold text-dark">Default Home Address</p>
-                            <p class="small text-muted mb-0">College of Engineering Adoor, Manakala, Adoor, Kerala</p>
+                            <p class="small text-muted mb-0" id="defaultAddressText">Loading address...</p>
                         </div>
                     </div>
                     <div id="specialView" style="display:none;">
@@ -227,8 +227,31 @@
 
         // Map Variables
         let map, selectionMarker;
-        const defaultLoc = [9.1324, 76.7182]; // Precise CEAdoor
+        let defaultLoc = [9.1324, 76.7182]; // College of Engineering Adoor
         let selectedCoords = null;
+
+        // Fetch user's home address from DB
+        (async function loadUserAddress() {
+            const userId = localStorage.getItem('userId');
+            if (!userId) return;
+            try {
+                const res = await fetch(`${API_BASE}/api/user/profile/${userId}`);
+                if (res.ok) {
+                    const user = await res.json();
+                    if (user.address) {
+                        const addrParts = [user.address.street, user.address.city].filter(Boolean);
+                        document.getElementById('defaultAddressText').innerText = addrParts.join(', ') || 'Address not set';
+                        if (user.address.location && user.address.location.coordinates) {
+                            const [lng, lat] = user.address.location.coordinates;
+                            if (lat !== 0 && lng !== 0) {
+                                defaultLoc = [lat, lng];
+                                selectedCoords = defaultLoc;
+                            }
+                        }
+                    }
+                }
+            } catch (e) { console.error('Error loading user address', e); }
+        })();
 
         function initSelectionMap() {
             if (map) return;

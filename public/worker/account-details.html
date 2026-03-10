@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SegriTrack Worker | Account Details</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --main-green: #01f386;
+            --dark-green: #004d37;
+            --glass: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.3);
+        }
+
+        body {
+            background: #f0f4f8;
+            font-family: 'Outfit', sans-serif;
+            color: #1e293b;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Glassmorphism Header */
+        .navbar {
+            background: rgba(0, 77, 55, 0.85) !important;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .back-btn {
+            color: white;
+            font-size: 1.5rem;
+            text-decoration: none;
+            margin-right: 15px;
+            transition: color 0.3s;
+        }
+
+        .back-btn:hover {
+            color: var(--main-green);
+        }
+
+        .glass-card {
+            background: var(--glass);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+            margin-bottom: 20px;
+        }
+
+        .profile-avatar-large {
+            width: 100px;
+            height: 100px;
+            border-radius: 35px;
+            border: 3px solid var(--main-green);
+            object-fit: cover;
+            margin-bottom: 15px;
+            background: white;
+        }
+
+        .form-control:focus {
+            border-color: var(--main-green);
+            box-shadow: 0 0 0 0.25rem rgba(1, 243, 134, 0.15);
+        }
+
+        .form-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-save {
+            background: var(--dark-green);
+            color: white;
+            font-weight: 600;
+            border-radius: 14px;
+            padding: 14px;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .btn-save:hover {
+            background: var(--main-green);
+            color: var(--dark-green);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(1, 243, 134, 0.3);
+        }
+
+        .vehicle-badge {
+            background: rgba(0, 77, 55, 0.1);
+            color: var(--dark-green);
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="navbar navbar-dark py-3 sticky-top">
+        <div class="container d-flex align-items-center">
+            <a href="profile.html" class="back-btn"><i class="bi bi-arrow-left"></i></a>
+            <span class="navbar-brand fw-bold mb-0 fs-5 text-white" style="letter-spacing: -0.5px;">Personal
+                Details</span>
+        </div>
+    </nav>
+
+    <div class="container py-4" style="max-width: 600px;">
+        <div class="glass-card text-center mb-4 pt-4">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/9/93/YT_Profile_icon.png" alt="Worker Profile"
+                class="profile-avatar-large shadow-sm">
+            <h5 class="fw-bold mb-1 text-dark" id="workerNameDisplay">Loading...</h5>
+            <p class="text-muted small mb-3">ID: <span id="workerIdDisplay">...</span></p>
+
+            <div class="vehicle-badge mt-2">
+                <i class="bi bi-truck fs-5"></i> KL-03-AB-1234 (Mini Truck)
+            </div>
+        </div>
+
+        <div class="glass-card">
+            <form id="accountForm">
+                <div class="mb-4">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" class="form-control bg-light rounded-3 py-2 border-0" id="workerNameInput"
+                        value="" readonly>
+                    <small class="text-muted" style="font-size: 0.7rem;">Contact dispatch to change legal name.</small>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label">Phone Number</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0 border-light"><i
+                                class="bi bi-telephone text-muted"></i></span>
+                        <input type="tel" class="form-control bg-white py-2 border-start-0 border-light"
+                            value="+91 9876543210">
+                    </div>
+                </div>
+
+                <div class="mb-5">
+                    <label class="form-label">Emergency Contact</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0 border-light"><i
+                                class="bi bi-heart text-danger"></i></span>
+                        <input type="tel" class="form-control bg-white py-2 border-start-0 border-light"
+                            placeholder="Emergency Phone Number">
+                    </div>
+                </div>
+
+                <button type="button" class="btn btn-save" onclick="alert('Details updated successfully.')">Update
+                    Details</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const name = localStorage.getItem('name');
+            const id = localStorage.getItem('workerId');
+
+            if (name) {
+                document.getElementById('workerNameDisplay').innerText = name;
+                document.getElementById('workerNameInput').value = name;
+            }
+            if (id) {
+                document.getElementById('workerIdDisplay').innerText = id.substring(0, 8).toUpperCase();
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -212,24 +212,24 @@
         <div class="container">
             <div class="row g-3">
                 <div class="col-4">
-                    <div class="glass-card text-center h-100">
-                        <i class="bi bi-list-check text-primary mb-2 d-inline-block fs-4"></i>
-                        <h4 class="fw-bold mb-0 text-dark" id="statTasks">--</h4>
-                        <small class="text-muted fw-bold" style="font-size: 0.65rem;">TASKS</small>
+                    <div class="glass-card text-center h-100 p-2">
+                        <i class="bi bi-calendar-check text-primary mb-2 d-inline-block fs-4"></i>
+                        <h4 class="fw-bold mb-0 text-dark" id="statMonthlyTasks">--</h4>
+                        <small class="text-muted fw-bold" style="font-size: 0.60rem;">MONTHLY DONE</small>
                     </div>
                 </div>
                 <div class="col-4">
-                    <div class="glass-card text-center h-100">
+                    <div class="glass-card text-center h-100 p-2 border border-success border-opacity-25 bg-success bg-opacity-10">
                         <i class="bi bi-wallet2 text-success mb-2 d-inline-block fs-4"></i>
-                        <h4 class="fw-bold mb-0" style="color: #059669;">₹140</h4>
-                        <small class="text-muted fw-bold" style="font-size: 0.65rem;">EARNINGS</small>
+                        <h4 class="fw-bold mb-0" style="color: #059669;" id="statEarnings">--</h4>
+                        <small class="text-success fw-bold" style="font-size: 0.60rem;">EARNINGS (₹)</small>
                     </div>
                 </div>
                 <div class="col-4">
-                    <div class="glass-card text-center h-100">
-                        <i class="bi bi-lightning-charge text-warning mb-2 d-inline-block fs-4"></i>
-                        <h4 class="fw-bold mb-0 text-dark">4.2<small class="fs-6 fw-normal">km</small></h4>
-                        <small class="text-muted fw-bold" style="font-size: 0.65rem;">RANGE</small>
+                    <div class="glass-card text-center h-100 p-2">
+                        <i class="bi bi-list-task text-warning mb-2 d-inline-block fs-4"></i>
+                        <h4 class="fw-bold mb-0 text-dark" id="statActiveTasks">--</h4>
+                        <small class="text-muted fw-bold" style="font-size: 0.60rem;">ACTIVE QUEUE</small>
                     </div>
                 </div>
             </div>
@@ -433,10 +433,14 @@
                 const pickups = await res.json();
                 console.log("Fetched Pickups:", pickups);
 
+                // Also fetch monthly stats
+                await fetchMonthlyStats(workerId);
+
                 const activeContainer = document.getElementById('activeTaskContainer');
                 const listContainer = document.getElementById('pickupList');
 
-                document.getElementById('statTasks').innerText = pickups.length;
+                document.getElementById('statActiveTasks').innerText = pickups.length;
+
 
                 if (pickups.length === 0) {
                     activeContainer.innerHTML = `
@@ -543,6 +547,41 @@
             } catch (e) {
                 console.error("Fetch error", e);
                 document.getElementById('activeTaskContainer').innerHTML = "<div class='alert alert-danger'>Error loading tasks.</div>";
+            }
+        }
+
+        async function fetchMonthlyStats(workerId) {
+            if (!workerId) return;
+            try {
+                // Fetch completed pickups specifically
+                const res = await fetch(`/api/pickup/worker/${workerId}/history`);
+                if (res.ok) {
+                    const completed = await res.json();
+                    
+                    // Filter for only this month's data (last 30 days)
+                    const thirtyDaysAgo = new Date();
+                    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                    
+                    const monthlyTasks = completed.filter(p => new Date(p.date) >= thirtyDaysAgo);
+                    
+                    document.getElementById('statMonthlyTasks').innerText = monthlyTasks.length;
+                    
+                    // Sum up earnings, assuming each history item has earnings or fallback to calculating via points
+                    let totalEarnings = 0;
+                    monthlyTasks.forEach(p => {
+                        if (p.earnings) {
+                            totalEarnings += p.earnings;
+                        } else if (p.wasteDetails && p.wasteDetails.pointsAwarded) {
+                            totalEarnings += p.wasteDetails.pointsAwarded * 2; // Conversion rate
+                        } else {
+                            totalEarnings += 20; // Default fallback earning per task
+                        }
+                    });
+                    
+                    document.getElementById('statEarnings').innerText = `₹${totalEarnings}`;
+                }
+            } catch (e) {
+                console.error("Error fetching monthly stats", e);
             }
         }
 
@@ -699,8 +738,8 @@
         function startLocationSharing(workerId) {
             if (!socket) return;
             stopLocationSharing(); // Clear any existing interval first
-            let lat = 9.158186;
-            let lng = 76.773261;
+            let lat = 9.1600; // Distinct starting latitude
+            let lng = 76.7450; // Distinct starting longitude
 
             locationInterval = setInterval(() => {
                 lat += (Math.random() - 0.5) * 0.001;

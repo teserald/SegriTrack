@@ -106,6 +106,13 @@
             padding: 0 20px;
             overflow-y: auto;
             flex-grow: 1;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        #checkpointsList {
+            overflow-y: auto;
+            max-height: calc(60vh - 140px);
+            -webkit-overflow-scrolling: touch;
         }
 
         .glass-panel {
@@ -286,8 +293,8 @@
             }
 
             // Default fallback locations
-            let workerLat = 9.158186;
-            let workerLng = 76.773261;
+            let workerLat = 9.1600;
+            let workerLng = 76.7450;
             let workerName = "Worker";
 
             // Fetch Worker Details for real location
@@ -338,8 +345,8 @@
                 const res = await fetch(`${API_BASE}/api/pickup/assigned?workerId=${workerId}&radiusKm=10`);
                 let pickups = await res.json();
 
-                // Show top optimized stops
-                const displayPickups = pickups.slice(0, 5);
+                // Show all optimized stops
+                const displayPickups = pickups;
 
                 if (displayPickups.length > 0) {
                     const waypoints = [L.latLng(workerLat, workerLng)];
@@ -370,38 +377,69 @@
                         }).addTo(map);
 
                         routingControl.on('routesfound', function (e) {
-                            const routes = e.routes;
-                            const mainRoute = routes[0];
-                            const legs = mainRoute.instructions; // Instructions often carry segment data or we can estimate
+                            const mainRoute = e.routes[0];
 
                             document.getElementById('routePanel').style.display = 'block';
                             const list = document.getElementById('checkpointsList');
                             list.innerHTML = '';
 
-                            // Calculate leg summaries (Approximate from total if legs aren't explicit in OSRM Leaflet)
-                            // We distribute the total summary based on waypoint count for demo purposes if OSRM legs aren't flat
-                            const totalDist = mainRoute.summary.totalDistance / 1000;
-                            const totalTime = Math.round((totalDist / 30) * 60); // 30km/h avg
+                            // OSRM provides per-leg data via waypointIndices and coordinates
+                            // Each "leg" corresponds to the segment between consecutive waypoints
+                            const totalLegs = waypoints.length - 1;
+                            const totalDist = mainRoute.summary.totalDistance / 1000; // km
+                            const totalTimeSec = mainRoute.summary.totalTime; // seconds
 
-                            waypoints.slice(1).forEach((wp, i) => {
-                                // Simple logic: Split total distance/time by 2 if 2 stops, or simulate realistic variation
-                                const legDist = (i === 0) ? (totalDist * 0.4).toFixed(1) : (totalDist * 0.6).toFixed(1);
-                                const legTime = Math.round((legDist / 25) * 60); // Slower for last leg
+                            // Extract actual per-leg distances from the route instructions
+                            // Group instructions by waypoint index to get real leg segments
+                            const instructions = mainRoute.instructions || [];
+                            const legDistances = [];
+                            const legTimes = [];
+                            let currentLegDist = 0;
+                            let currentLegTime = 0;
+                            let legIndex = 0;
+
+                            for (const inst of instructions) {
+                                if (inst.type === 'WaypointReached' || inst.type === 'DestinationReached') {
+                                    legDistances.push(currentLegDist / 1000); // convert m to km
+                                    legTimes.push(Math.round(currentLegTime / 60)); // convert s to min
+                                    currentLegDist = 0;
+                                    currentLegTime = 0;
+                                    legIndex++;
+                                } else {
+                                    currentLegDist += (inst.distance || 0);
+                                    currentLegTime += (inst.time || 0);
+                                }
+                            }
+
+                            // Fallback: if instructions didn't yield proper legs, distribute evenly
+                            if (legDistances.length === 0 || legDistances.length < totalLegs) {
+                                legDistances.length = 0;
+                                legTimes.length = 0;
+                                for (let i = 0; i < totalLegs; i++) {
+                                    legDistances.push(totalDist / totalLegs);
+                                    legTimes.push(Math.round((totalTimeSec / 60) / totalLegs));
+                                }
+                            }
+
+                            // Build checkpoint cards with real per-leg data
+                            for (let i = 0; i < totalLegs; i++) {
+                                const dist = legDistances[i] !== undefined ? legDistances[i].toFixed(1) : (totalDist / totalLegs).toFixed(1);
+                                const time = legTimes[i] !== undefined ? legTimes[i] : Math.round((totalTimeSec / 60) / totalLegs);
 
                                 list.innerHTML += `
     <div class="checkpoint-pill shadow-sm">
         <div class="stop-number">${i + 1}</div>
         <div class="flex-grow-1">
             <div class="fw-bold text-dark small mb-0">${checkpointNames[i + 1]}</div>
-            <div class="text-muted" style="font-size: 0.65rem;">Next Stop</div>
+            <div class="text-muted" style="font-size: 0.65rem;">Stop ${i + 1} of ${totalLegs}</div>
         </div>
         <div class="text-end">
-            <div class="fw-bold text-success small mb-0">${legTime} min</div>
-            <div class="text-muted" style="font-size: 0.65rem;">${legDist} km</div>
+            <div class="fw-bold text-success small mb-0">${time} min</div>
+            <div class="text-muted" style="font-size: 0.65rem;">${dist} km</div>
         </div>
     </div>
     `;
-                            });
+                            }
                         });
                     }
                 }
@@ -409,16 +447,9 @@
                 console.error("Map Error:", error);
                 document.getElementById('routePanel').style.display = 'flex';
                 document.getElementById('checkpointsList').innerHTML = `
-    <div class="checkpoint-pill shadow-sm">
-        <div class="stop-number">1</div>
-        <div class="flex-grow-1">
-            <div class="fw-bold small">Manakala</div>
-            <div class="text-muted small">First stop</div>
-        </div>
-        <div class="text-end">
-            <div class="fw-bold text-success small">12 min</div>
-            <div class="text-muted small">4.2 km</div>
-        </div>
+    <div class="text-center py-3">
+        <i class="bi bi-exclamation-triangle text-warning fs-4"></i>
+        <p class="text-muted small mt-2 mb-0">Failed to load route data. Please reload the page.</p>
     </div>
     `;
             }
@@ -499,29 +530,40 @@
             window.addEventListener('mouseup', onDragEnd);
 
             // Continuous Mouse wheel scroll logic
-            const sheetContent = sheet.querySelector('.sheet-content');
+            const checkpointsList = document.getElementById('checkpointsList');
 
             sheet.addEventListener('wheel', (e) => {
-                let shouldPreventDefault = false;
+                const isOverContent = e.target.closest('.sheet-content') || e.target.closest('#checkpointsList');
 
                 if (transformY === collapsedY) {
-                    // If collapsed, scrolling down (deltaY > 0) expands the sheet
+                    e.preventDefault();
                     if (e.deltaY > 0) {
                         transformY = expandedY;
-                        shouldPreventDefault = true;
+                        sheet.style.transform = `translateY(${transformY}px)`;
                     }
                 } else if (transformY === expandedY) {
-                    // If expanded, normal scrolling happens.
-                    // But if at the top of the list and scrolling up (deltaY < 0), collapse the sheet.
-                    if (e.deltaY < 0 && sheetContent.scrollTop <= 0) {
-                        transformY = collapsedY;
-                        shouldPreventDefault = true;
-                    }
-                }
+                    if (isOverContent && checkpointsList) {
+                        const atTop = checkpointsList.scrollTop <= 0;
+                        const atBottom = checkpointsList.scrollTop + checkpointsList.clientHeight >= checkpointsList.scrollHeight - 1;
 
-                if (shouldPreventDefault) {
-                    e.preventDefault();
-                    sheet.style.transform = `translateY(${transformY}px)`;
+                        if (e.deltaY < 0 && atTop) {
+                            // Scrolling up at top of list → collapse the sheet
+                            e.preventDefault();
+                            transformY = collapsedY;
+                            sheet.style.transform = `translateY(${transformY}px)`;
+                        } else if (e.deltaY > 0 && atBottom) {
+                            // At bottom of list, prevent page scroll but don't collapse
+                            e.preventDefault();
+                        }
+                        // Otherwise let native scroll happen inside the list
+                    } else {
+                        // Scrolling over drag handle or padding area
+                        e.preventDefault();
+                        if (e.deltaY < 0) {
+                            transformY = collapsedY;
+                            sheet.style.transform = `translateY(${transformY}px)`;
+                        }
+                    }
                 }
             }, { passive: false });
         });

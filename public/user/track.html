@@ -247,7 +247,7 @@
             }
 
             // Defaults if API fails
-            let PICKUP_LOCATION = [9.1324, 76.7182];
+            let PICKUP_LOCATION = [9.15, 76.732];
             let WORKER_LOCATION = [9.158186, 76.773261];
             let workerId = null;
             let isWorkerOnline = false;
@@ -414,7 +414,7 @@
                         <div class="col-8 col-md-9 d-flex align-items-center">
                             <i class="bi bi-person-circle worker-avatar-icon"></i>
                             <div>
-                                <h5 class="fw-bold mb-0">Worker #2</h5>
+                                <h5 class="fw-bold mb-0">Loading...</h5>
                                 <span class="badge bg-success-subtle text-success mt-1">On Schedule</span>
                                 <div class="mt-1 small text-muted"><i class="bi bi-star-fill text-warning me-1"></i> 4.8
                                     Rating</div>
@@ -433,7 +433,7 @@
                     <div class="row">
                         <div class="col-md-6 mb-3 mb-md-0 text-center text-md-start">
                             <p class="small text-muted mb-1 fw-bold">PICKUP ADDRESS</p>
-                            <p class="mb-0">College of Engineering Adoor, Manakala, Adoor, Kerala</p>
+                            <p class="mb-0" id="pickupAddressText">Loading address...</p>
                         </div>
                         <div class="col-md-6 text-center text-md-end">
                             <button class="btn btn-outline-dark px-4 fw-bold rounded-3">

@@ -7,6 +7,7 @@
     <title>SegriTrack | Admin Panel</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -15,10 +16,12 @@
         :root {
             --main-green: #01f386;
             --dark-green: #004d37;
+            font-family: 'Outfit', sans-serif;
         }
 
         body {
             overflow-x: hidden;
+            background-color: #f8f9fa;
         }
 
         .sidebar {
@@ -28,212 +31,574 @@
             position: fixed;
             width: 250px;
             padding: 20px;
+            z-index: 1000;
         }
 
         .main-content {
             margin-left: 250px;
-            padding: 20px;
+            padding: 30px;
         }
 
         .nav-link {
             color: rgba(255, 255, 255, 0.7);
-            margin-bottom: 10px;
-            padding: 12px;
+            margin-bottom: 5px;
+            padding: 12px 15px;
             border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
         }
 
         .nav-link:hover,
         .nav-link.active {
             background: rgba(255, 255, 255, 0.1);
             color: white;
+            font-weight: 600;
         }
 
         .nav-link i {
-            margin-right: 10px;
+            margin-right: 12px;
+            font-size: 1.1rem;
         }
 
         .stat-card {
             border: none;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+            background: white;
+            transition: transform 0.2s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
         }
 
         #liveMap {
             height: 500px;
             width: 100%;
-            border-radius: 15px;
+            border-radius: 16px;
+            z-index: 1;
+        }
+
+        /* SPA Section Hiding */
+        .admin-section {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .admin-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Custom Table Styles */
+        .table-custom {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+        }
+        .table-custom thead th {
+            background: #f1f5f9;
+            color: #64748b;
+            font-weight: 600;
+            border-bottom: none;
+            padding: 15px 20px;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .table-custom tbody td {
+            padding: 18px 20px;
+            vertical-align: middle;
+            color: #334155;
+            border-bottom: 1px solid #f1f5f9;
         }
 
         @keyframes markerPulse {
-            0% {
-                transform: scale(1);
-                box-shadow: 0 0 0 0 rgba(1, 243, 134, 0.7);
-            }
-
-            70% {
-                transform: scale(1.1);
-                box-shadow: 0 0 0 15px rgba(1, 243, 134, 0);
-            }
-
-            100% {
-                transform: scale(1);
-                box-shadow: 0 0 0 0 rgba(1, 243, 134, 0);
-            }
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(1, 243, 134, 0.7); }
+            70% { transform: scale(1.1); box-shadow: 0 0 0 15px rgba(1, 243, 134, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(1, 243, 134, 0); }
         }
     </style>
 </head>
 
-<body class="bg-light">
+<body>
 
     <!-- Sidebar -->
-    <div class="sidebar d-none d-md-block">
-        <h4 class="fw-bold mb-5 ps-2">🌱 SegriTrack</h4>
+    <div class="sidebar d-none d-md-block shadow-lg">
+        <h3 class="fw-bold mb-5 ps-2 pt-3" style="color: var(--main-green);">🌱 SegriTrack</h3>
         <nav class="nav flex-column">
-            <a class="nav-link active" href="#"><i class="bi bi-speedometer2"></i> Dashboard</a>
-            <a class="nav-link" href="#"><i class="bi bi-people"></i> Users</a>
-            <a class="nav-link" href="#"><i class="bi bi-truck"></i> Workers</a>
-            <a class="nav-link" href="#"><i class="bi bi-bar-chart"></i> Reports</a>
-            <a class="nav-link text-danger mt-5" href="login.html"><i class="bi bi-box-arrow-left"></i> Logout</a>
+            <a class="nav-link active" id="nav-dashboard" onclick="switchTab('dashboard')"><i class="bi bi-speedometer2"></i> Dashboard</a>
+            <a class="nav-link" id="nav-users" onclick="switchTab('users'); loadUsers();"><i class="bi bi-people"></i> Users</a>
+            <a class="nav-link" id="nav-workers" onclick="switchTab('workers'); loadWorkers();"><i class="bi bi-truck"></i> Workers</a>
+            <a class="nav-link" id="nav-pickups" onclick="switchTab('pickups'); loadPickups();"><i class="bi bi-box-seam"></i> Pickups</a>
+            <hr class="border-secondary my-4">
+            <a class="nav-link text-danger" href="login.html"><i class="bi bi-box-arrow-left"></i> Logout</a>
         </nav>
     </div>
 
     <!-- Main Content -->
     <div class="main-content">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4 class="fw-bold">Live Monitoring</h4>
-            <span class="badge bg-success p-2">System Online</span>
+
+        <!-- ==============================================
+             SECTION: Dashboard (Default)
+             ============================================== -->
+        <div id="sec-dashboard" class="admin-section active">
+            <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+                <h3 class="fw-bold mb-0">Live Monitoring</h3>
+                <span class="badge bg-success bg-opacity-10 text-success border border-success px-3 py-2 rounded-pill"><i class="bi bi-circle-fill small me-2" style="font-size: 0.5rem;"></i> System Online</span>
+            </div>
+
+            <!-- Stats Row -->
+            <div class="row g-4 mb-5">
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <h6 class="text-muted small fw-bold">TOTAL PICKUPS</h6>
+                        <h2 class="mb-0 fw-bold" id="stat-pickups">...</h2>
+                        <small class="text-success fw-bold"><i class="bi bi-arrow-up"></i> Active System</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <h6 class="text-muted small fw-bold">ACTIVE WORKERS</h6>
+                        <h2 class="mb-0 fw-bold" id="stat-workers">...</h2>
+                        <small class="text-primary fw-bold">On Route</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <h6 class="text-muted small fw-bold">SEGREGATION RATE</h6>
+                        <h2 class="mb-0 fw-bold" id="stat-rate">...</h2>
+                        <small class="text-success fw-bold">Excellent</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <h6 class="text-muted small fw-bold">ISSUES REPORTED</h6>
+                        <h2 class="mb-0 fw-bold text-danger" id="stat-issues">...</h2>
+                        <small class="text-muted fw-bold">Require Attention</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map Section -->
+            <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold mb-0">Live Worker Tracking</h5>
+                    <button class="btn btn-outline-success rounded-pill px-4 fw-bold" onclick="map.setView([9.1324, 76.7182], 12)"><i class="bi bi-crosshair me-2"></i>Recenter Adoor</button>
+                </div>
+                <div id="liveMap"></div>
+            </div>
         </div>
 
-        <!-- Stats Row -->
-        <div class="row g-4 mb-4">
-            <div class="col-md-3">
-                <div class="stat-card bg-white">
-                    <h6 class="text-muted small fw-bold">TOTAL PICKUPS</h6>
-                    <h3 class="mb-0 fw-bold">1,240</h3>
-                    <small class="text-success"><i class="bi bi-arrow-up"></i> 12% today</small>
-                </div>
+        <!-- ==============================================
+             SECTION: Users
+             ============================================== -->
+        <div id="sec-users" class="admin-section">
+            <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+                <h3 class="fw-bold mb-0">User Management</h3>
             </div>
-            <div class="col-md-3">
-                <div class="stat-card bg-white">
-                    <h6 class="text-muted small fw-bold">ACTIVE WORKERS</h6>
-                    <h3 class="mb-0 fw-bold">42</h3>
-                    <small class="text-primary">On Route</small>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stat-card bg-white">
-                    <h6 class="text-muted small fw-bold">SEGREGATION RATE</h6>
-                    <h3 class="mb-0 fw-bold">87%</h3>
-                    <small class="text-success">Excellent</small>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stat-card bg-white">
-                    <h6 class="text-muted small fw-bold">ISSSUES REPORTED</h6>
-                    <h3 class="mb-0 fw-bold text-danger">5</h3>
-                    <small class="text-muted">Requires Action</small>
-                </div>
+            <div class="table-custom">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Total Points</th>
+                            <th>EcoPoints</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        <tr><td colspan="6" class="text-center py-4"><div class="spinner-border text-success" role="status"></div></td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
-        <!-- Map Section -->
-        <div class="card border-0 shadow-sm p-3 mb-4">
-            <div class="d-flex justify-content-between mb-3">
-                <h6 class="fw-bold">Live Worker Tracking</h6>
-                <button class="btn btn-sm btn-outline-dark">Filter Zone</button>
+        <!-- ==============================================
+             SECTION: Workers
+             ============================================== -->
+        <div id="sec-workers" class="admin-section">
+            <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+                <h3 class="fw-bold mb-0">Worker Management</h3>
+                <button class="btn btn-dark fw-bold rounded-pill px-4"><i class="bi bi-plus-lg me-2"></i>Add Worker</button>
             </div>
-            <div id="liveMap"></div>
+            <div class="table-custom">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Assigned Area</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="workersTableBody">
+                        <tr><td colspan="6" class="text-center py-4"><div class="spinner-border text-success" role="status"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ==============================================
+             SECTION: Pickups
+             ============================================== -->
+        <div id="sec-pickups" class="admin-section">
+            <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+                <h3 class="fw-bold mb-0">Logistics & Pickups</h3>
+            </div>
+            <div class="table-custom">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Date / Slot</th>
+                            <th>User</th>
+                            <th>Address</th>
+                            <th>Status</th>
+                            <th>Worker</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pickupsTableBody">
+                        <tr><td colspan="6" class="text-center py-4"><div class="spinner-border text-success" role="status"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
     </div>
 
-    <!-- Leaflet JS -->
+    <!-- ==============================================
+         GLOBAL MODALS
+         ============================================== -->
+    
+    <!-- Password Auth Modal -->
+    <div class="modal fade" id="authModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0 shadow-lg">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-danger"><i class="bi bi-shield-lock-fill me-2"></i>Admin Verification</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-muted small mb-4">You are attempting a sensitive system update. Please enter your administrator password to proceed.</p>
+                    <input type="password" id="adminPasswordInput" class="form-control form-control-lg bg-light" placeholder="Enter Admin Password">
+                    <div id="authErrorMsg" class="text-danger small fw-bold mt-2" style="display: none;">Invalid Password!</div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light fw-bold px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger fw-bold px-4" id="authConfirmBtn">Authorize & Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Edit Modal -->
+    <div class="modal fade" id="userEditModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Edit User Data</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editUserId">
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">Total Points</label>
+                        <input type="number" id="editUserPoints" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-dark fw-bold px-4 w-100" onclick="triggerSaveUser()">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS --    <!-- Bootstrap JS (needed for Modals) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // Initialize Map (Centered on Kochi/Adoor - using Kochi for now matching seed)
-        const map = L.map('liveMap', { zoomControl: false }).setView([9.9312, 76.2673], 13);
-
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; SegriTrack'
-        }).addTo(map);
-
-        const truckIcon = L.divIcon({
-            html: `<div style="background: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 3px solid var(--dark-green); animation: markerPulse 2s infinite;">
-                    <i class="bi bi-truck text-dark" style="font-size: 20px;"></i>
-                   </div>`,
-            className: '',
-            iconSize: [40, 40],
-            iconAnchor: [20, 20]
-        });
-
-        const markers = {};
+        const API_BASE = (window.location.port === '3000') ? '' : 'http://localhost:3000';
+        let map;
+        let markers = {};
         let socket;
 
-        // Fetch Stats
+        // Current Action State for Auth Modal
+        let pendingAction = null; 
+        
+        // Modals
+        let authModalInit;
+        let userEditModalInit;
+
         document.addEventListener('DOMContentLoaded', async () => {
-            try {
-                const res = await fetch('/api/admin/stats');
-                const stats = await res.json();
+            authModalInit = new bootstrap.Modal(document.getElementById('authModal'));
+            userEditModalInit = new bootstrap.Modal(document.getElementById('userEditModal'));
 
-                const statCards = document.querySelectorAll('.stat-card h3');
-                if (statCards.length >= 4) {
-                    statCards[0].innerText = stats.totalPickups || 0;
-                    statCards[1].innerText = stats.activeWorkers || 0;
-                    statCards[2].innerText = stats.segregationRate || '0%';
-                    statCards[3].innerText = stats.pendingIssues || 0;
-                }
-            } catch (e) { console.error("Stats fetch error", e); }
+            initMap();
+            await loadDashboardStats();
+            connectSocket();
 
-            // Fetch Worker Locations
-            try {
-                const wRes = await fetch('/api/admin/workers/locations');
-                const workers = await wRes.json();
-
-                workers.forEach(w => {
-                    if (w.status === 'inactive') return; // Ignore offline workers
-
-                    if (w.currentLocation && w.currentLocation.coordinates && w.currentLocation.coordinates.length === 2) {
-                        const lng = w.currentLocation.coordinates[0];
-                        const lat = w.currentLocation.coordinates[1];
-                        // Avoid plotting 0,0 default locations
-                        if (lat !== 0 && lng !== 0) {
-                            markers[w._id] = L.marker([lat, lng], { icon: truckIcon }).addTo(map)
-                                .bindPopup(`<b style="font-family: Outfit;">Worker: ${w.name}</b><br>Status: ${w.status || 'Active'}`);
-                        }
-                    }
-                });
-            } catch (e) { console.error("Worker fetch error", e); }
-
-            // Connect Socket
-            try {
-                socket = io();
-                console.log("Admin Socket connected");
-
-                socket.on('workerLocation', (data) => {
-                    const { workerId, lat, lng } = data;
-                    if (markers[workerId]) {
-                        markers[workerId].setLatLng([lat, lng]);
-                    } else {
-                        // Creating marker if it doesn't exist (if they just went online)
-                        markers[workerId] = L.marker([lat, lng], { icon: truckIcon }).addTo(map)
-                            .bindPopup(`<b style="font-family: Outfit;">Worker Update</b><br>Status: Active`);
-                    }
-                });
-
-                socket.on('workerStatusUpdate', (data) => {
-                    const { workerId, isOnline } = data;
-                    if (!isOnline && markers[workerId]) {
-                        map.removeLayer(markers[workerId]);
-                        delete markers[workerId];
-                    }
-                });
-
-            } catch (e) { console.error("Socket error", e); }
+            // Bind Auth Confirm
+            document.getElementById('authConfirmBtn').addEventListener('click', executePendingAction);
         });
 
+        // ==========================================
+        // SPA NAVIGATION
+        // ==========================================
+        function switchTab(tabId) {
+            // Hide all sections
+            document.querySelectorAll('.admin-section').forEach(sec => sec.classList.remove('active'));
+            // Remove active class from navs
+            document.querySelectorAll('.nav-link').forEach(nav => nav.classList.remove('active'));
+            
+            // Activate target
+            document.getElementById(`sec-${tabId}`).classList.add('active');
+            document.getElementById(`nav-${tabId}`).classList.add('active');
+
+            if(tabId === 'dashboard' && map) {
+                setTimeout(() => map.invalidateSize(), 150);
+            }
+        }
+
+        // ==========================================
+        // DASHBOARD & MAP
+        // ==========================================
+        function initMap() {
+            // Centered on CE Adoor
+            map = L.map('liveMap', { zoomControl: false }).setView([9.1324, 76.7182], 12);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; SegriTrack'
+            }).addTo(map);
+        }
+
+        async function loadDashboardStats() {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/stats`);
+                const stats = await res.json();
+                document.getElementById('stat-pickups').innerText = stats.totalPickups || 0;
+                document.getElementById('stat-workers').innerText = stats.activeWorkers || 0;
+                document.getElementById('stat-rate').innerText = stats.segregationRate || '0%';
+                document.getElementById('stat-issues').innerText = stats.pendingIssues || 0;
+
+                // Load initial worker locations
+                const wRes = await fetch(`${API_BASE}/api/admin/workers/locations`);
+                const workers = await wRes.json();
+                
+                const truckIcon = L.divIcon({
+                    html: `<div style="background: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 3px solid var(--dark-green); animation: markerPulse 2s infinite;">
+                            <i class="bi bi-truck text-dark" style="font-size: 20px;"></i>
+                           </div>`,
+                    className: '', iconSize: [40, 40], iconAnchor: [20, 20]
+                });
+
+                workers.forEach(w => {
+                    if (w.status === 'inactive') return;
+                    if (w.currentLocation?.coordinates && w.currentLocation.coordinates[0] !== 0) {
+                        markers[w._id] = L.marker([w.currentLocation.coordinates[1], w.currentLocation.coordinates[0]], { icon: truckIcon })
+                            .addTo(map)
+                            .bindPopup(`<b style="font-family: Outfit;">${w.name}</b><br>Status: ${w.status}`);
+                    }
+                });
+            } catch (e) { console.error("Error loading stats", e); }
+        }
+
+        function connectSocket() {
+            socket = io();
+            socket.on('workerLocation', (data) => {
+                const { workerId, lat, lng } = data;
+                if (markers[workerId]) {
+                    markers[workerId].setLatLng([lat, lng]);
+                }
+            });
+            socket.on('workerStatusUpdate', (data) => {
+                const { workerId, isOnline } = data;
+                if (!isOnline && markers[workerId]) {
+                    map.removeLayer(markers[workerId]);
+                    delete markers[workerId];
+                }
+            });
+        }
+
+        // ==========================================
+        // DATA LOADING (USERS, WORKERS, PICKUPS)
+        // ==========================================
+        async function loadUsers() {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/users`);
+                const users = await res.json();
+                const tbody = document.getElementById('usersTableBody');
+                
+                if(users.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">No users found.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = users.map(u => `
+                    <tr>
+                        <td class="fw-bold text-dark">${u.name}</td>
+                        <td>${u.email}</td>
+                        <td><span class="badge ${u.role === 'admin' ? 'bg-danger' : 'bg-primary'}">${u.role.toUpperCase()}</span></td>
+                        <td class="fw-bold">${u.points?.total || 0}</td>
+                        <td class="text-success fw-bold">${u.points?.ecoPoints || 0} <i class="bi bi-leaf"></i></td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-light border shadow-sm rounded-3" onclick="openUserEdit('${u._id}', ${u.points?.total || 0})">
+                                <i class="bi bi-pencil-square text-dark"></i> Edit
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (e) { console.error(e); }
+        }
+
+        async function loadWorkers() {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/workers`);
+                const workers = await res.json();
+                const tbody = document.getElementById('workersTableBody');
+                
+                tbody.innerHTML = workers.map(w => `
+                    <tr>
+                        <td class="fw-bold text-dark">${w.name}</td>
+                        <td>${w.email}</td>
+                        <td>${w.phone || 'N/A'}</td>
+                        <td>${w.assignedArea || 'Global'}</td>
+                        <td>
+                            <span class="badge ${w.status === 'active' || w.status === 'on-route' ? 'bg-success' : 'bg-secondary'}">${w.status.toUpperCase()}</span>
+                        </td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-light border shadow-sm rounded-3" onclick="requestAuth('reassignWorker', '${w._id}')">
+                                <i class="bi bi-gear-fill text-dark"></i> Manage
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (e) { console.error(e); }
+        }
+
+        async function loadPickups() {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/pickups`);
+                const pickups = await res.json();
+                const tbody = document.getElementById('pickupsTableBody');
+                
+                tbody.innerHTML = pickups.map(p => {
+                    let badgeColor = 'bg-warning text-dark';
+                    if(p.status === 'completed') badgeColor = 'bg-success';
+                    if(p.status === 'missed') badgeColor = 'bg-danger';
+                    if(p.status === 'in-progress') badgeColor = 'bg-primary';
+
+                    return `
+                    <tr>
+                        <td>
+                            <div class="fw-bold text-dark">${new Date(p.date).toLocaleDateString()}</div>
+                            <div class="small text-muted">${p.slot}</div>
+                        </td>
+                        <td class="fw-bold text-primary">${p.user?.name || 'Unknown'}</td>
+                        <td class="small" style="max-width: 200px;"><div class="text-truncate">${p.location?.address || 'N/A'}</div></td>
+                        <td><span class="badge ${badgeColor}">${p.status.toUpperCase()}</span></td>
+                        <td>${p.worker?.name || '<span class="text-muted fst-italic">Unassigned</span>'}</td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-light border shadow-sm rounded-3">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `}).join('');
+            } catch (e) { console.error(e); }
+        }
+
+        // ==========================================
+        // AUTH & EDIT LOGIC
+        // ==========================================
+        function openUserEdit(id, currentPoints) {
+            document.getElementById('editUserId').value = id;
+            document.getElementById('editUserPoints').value = currentPoints;
+            userEditModalInit.show();
+        }
+
+        function triggerSaveUser() {
+            userEditModalInit.hide();
+            // Store action intent
+            pendingAction = {
+                type: 'updateUserPoints',
+                userId: document.getElementById('editUserId').value,
+                newPoints: parseInt(document.getElementById('editUserPoints').value)
+            };
+            
+            // Pop the auth modal
+            document.getElementById('adminPasswordInput').value = '';
+            document.getElementById('authErrorMsg').style.display = 'none';
+            authModalInit.show();
+        }
+
+        function requestAuth(actionType, targetId) {
+            pendingAction = { type: actionType, targetId };
+            document.getElementById('adminPasswordInput').value = '';
+            document.getElementById('authErrorMsg').style.display = 'none';
+            authModalInit.show();
+        }
+
+        async function executePendingAction() {
+            const password = document.getElementById('adminPasswordInput').value;
+            if(!password) return;
+            
+            const btn = document.getElementById('authConfirmBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Verifying...';
+            btn.disabled = true;
+            document.getElementById('authErrorMsg').style.display = 'none';
+
+            try {
+                if(pendingAction.type === 'updateUserPoints') {
+                    const res = await fetch(`${API_BASE}/api/admin/users/${pendingAction.userId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            adminPassword: password,
+                            points: { total: pendingAction.newPoints } // Simplifying for demo
+                        })
+                    });
+
+                    if(res.ok) {
+                        authModalInit.hide();
+                        loadUsers(); // refresh data
+                        alert('User points updated successfully.');
+                    } else {
+                        throw new Error('Invalid Password or Server Error');
+                    }
+                } else if (pendingAction.type === 'reassignWorker') {
+                    // Mock implementation for worker manage
+                    const res = await fetch(`${API_BASE}/api/admin/workers/${pendingAction.targetId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ adminPassword: password, status: 'inactive' })
+                    });
+                    if(res.ok) {
+                        authModalInit.hide();
+                        loadWorkers();
+                        alert('Worker deactivated successfully.');
+                    } else {
+                         throw new Error('Invalid Password');
+                    }
+                }
+            } catch (e) {
+                document.getElementById('authErrorMsg').innerText = e.message;
+                document.getElementById('authErrorMsg').style.display = 'block';
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
     </script>
 </body>
-
-</html>
+</html>ml>

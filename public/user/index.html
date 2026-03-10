@@ -287,7 +287,7 @@
             <div class="small">
                 <a href="#" class="me-3">Privacy Policy</a>
                 <a href="#" class="me-3">Terms of Service</a>
-                <a href="#">Cookie Policy</a>
+                <a href="/admin/login.html" class="text-success fw-bold">Admin Portal Login</a>
             </div>
         </div>
     </footer>
@@ -320,6 +320,11 @@
                                 value="worker">
                             <label class="form-check-label small" for="modalRoleWorker">Worker</label>
                         </div>
+                        <div class="form-check form-check-inline border-start border-2 border-success ps-2 ms-1">
+                            <input class="form-check-input" type="radio" name="demoRole" id="modalRoleAdmin"
+                                value="admin">
+                            <label class="form-check-label small text-success fw-bold" for="modalRoleAdmin">Admin</label>
+                        </div>
                     </div>
                     <button type="button" onclick="handleDemoLogin()" class="btn btn-success btn-sm w-100 fw-bold">Login
                         as Demo Account</button>
@@ -342,9 +347,7 @@
                 </button>
             </div>
         </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function handleGoogleLogin() {
             // Mock Google Login - Disabled as requested, does nothing
@@ -356,11 +359,18 @@
             if (!roleEl) return;
 
             const role = roleEl.value;
+            const API_BASE = (window.location.port === '5500' || window.location.port === '5501') ? 'http://localhost:3000' : '';
+
+            // Redirect Admin directly to the Admin Portal
+            if (role === 'admin') {
+                window.location.href = API_BASE + '/admin/login.html';
+                return;
+            }
+
             const errorMsg = document.getElementById('modalErrorMsg');
             errorMsg.innerText = "Logging in...";
 
             try {
-                const API_BASE = (window.location.port === '5500' || window.location.port === '5501') ? 'http://localhost:3000' : '';
                 // Call Backend to get REAL ObjectID
                 const res = await fetch(`${API_BASE}/api/auth/demo-login`, {
                     method: 'POST',
@@ -391,5 +401,6 @@
         }
     </script>
 </body>
+</html>y>
 
 </html>
