@@ -7,7 +7,8 @@
     <title>SegriTrack | Admin Panel</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -68,7 +69,7 @@
             background: white;
             transition: transform 0.2s;
         }
-        
+
         .stat-card:hover {
             transform: translateY(-5px);
         }
@@ -85,13 +86,21 @@
             display: none;
             animation: fadeIn 0.3s ease-in-out;
         }
+
         .admin-section.active {
             display: block;
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         /* Custom Table Styles */
@@ -101,6 +110,7 @@
             overflow: hidden;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
         }
+
         .table-custom thead th {
             background: #f1f5f9;
             color: #64748b;
@@ -111,6 +121,7 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
+
         .table-custom tbody td {
             padding: 18px 20px;
             vertical-align: middle;
@@ -119,9 +130,20 @@
         }
 
         @keyframes markerPulse {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(1, 243, 134, 0.7); }
-            70% { transform: scale(1.1); box-shadow: 0 0 0 15px rgba(1, 243, 134, 0); }
-            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(1, 243, 134, 0); }
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(1, 243, 134, 0.7);
+            }
+
+            70% {
+                transform: scale(1.1);
+                box-shadow: 0 0 0 15px rgba(1, 243, 134, 0);
+            }
+
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(1, 243, 134, 0);
+            }
         }
     </style>
 </head>
@@ -132,10 +154,14 @@
     <div class="sidebar d-none d-md-block shadow-lg">
         <h3 class="fw-bold mb-5 ps-2 pt-3" style="color: var(--main-green);">🌱 SegriTrack</h3>
         <nav class="nav flex-column">
-            <a class="nav-link active" id="nav-dashboard" onclick="switchTab('dashboard')"><i class="bi bi-speedometer2"></i> Dashboard</a>
-            <a class="nav-link" id="nav-users" onclick="switchTab('users'); loadUsers();"><i class="bi bi-people"></i> Users</a>
-            <a class="nav-link" id="nav-workers" onclick="switchTab('workers'); loadWorkers();"><i class="bi bi-truck"></i> Workers</a>
-            <a class="nav-link" id="nav-pickups" onclick="switchTab('pickups'); loadPickups();"><i class="bi bi-box-seam"></i> Pickups</a>
+            <a class="nav-link active" id="nav-dashboard" onclick="switchTab('dashboard')"><i
+                    class="bi bi-speedometer2"></i> Dashboard</a>
+            <a class="nav-link" id="nav-users" onclick="switchTab('users'); loadUsers();"><i class="bi bi-people"></i>
+                Users</a>
+            <a class="nav-link" id="nav-workers" onclick="switchTab('workers'); loadWorkers();"><i
+                    class="bi bi-truck"></i> Workers</a>
+            <a class="nav-link" id="nav-pickups" onclick="switchTab('pickups'); loadPickups();"><i
+                    class="bi bi-box-seam"></i> Pickups</a>
             <hr class="border-secondary my-4">
             <a class="nav-link text-danger" href="login.html"><i class="bi bi-box-arrow-left"></i> Logout</a>
         </nav>
@@ -150,7 +176,9 @@
         <div id="sec-dashboard" class="admin-section active">
             <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
                 <h3 class="fw-bold mb-0">Live Monitoring</h3>
-                <span class="badge bg-success bg-opacity-10 text-success border border-success px-3 py-2 rounded-pill"><i class="bi bi-circle-fill small me-2" style="font-size: 0.5rem;"></i> System Online</span>
+                <span
+                    class="badge bg-success bg-opacity-10 text-success border border-success px-3 py-2 rounded-pill"><i
+                        class="bi bi-circle-fill small me-2" style="font-size: 0.5rem;"></i> System Online</span>
             </div>
 
             <!-- Stats Row -->
@@ -189,7 +217,9 @@
             <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h5 class="fw-bold mb-0">Live Worker Tracking</h5>
-                    <button class="btn btn-outline-success rounded-pill px-4 fw-bold" onclick="map.setView([9.1324, 76.7182], 12)"><i class="bi bi-crosshair me-2"></i>Recenter Adoor</button>
+                    <button class="btn btn-outline-success rounded-pill px-4 fw-bold"
+                        onclick="map.setView([9.1324, 76.7182], 12)"><i
+                            class="bi bi-crosshair me-2"></i>Recenter</button>
                 </div>
                 <div id="liveMap"></div>
             </div>
@@ -215,7 +245,11 @@
                         </tr>
                     </thead>
                     <tbody id="usersTableBody">
-                        <tr><td colspan="6" class="text-center py-4"><div class="spinner-border text-success" role="status"></div></td></tr>
+                        <tr>
+                            <td colspan="6" class="text-center py-4">
+                                <div class="spinner-border text-success" role="status"></div>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -227,7 +261,8 @@
         <div id="sec-workers" class="admin-section">
             <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
                 <h3 class="fw-bold mb-0">Worker Management</h3>
-                <button class="btn btn-dark fw-bold rounded-pill px-4"><i class="bi bi-plus-lg me-2"></i>Add Worker</button>
+                <button class="btn btn-dark fw-bold rounded-pill px-4"><i class="bi bi-plus-lg me-2"></i>Add
+                    Worker</button>
             </div>
             <div class="table-custom">
                 <table class="table table-hover mb-0">
@@ -242,7 +277,11 @@
                         </tr>
                     </thead>
                     <tbody id="workersTableBody">
-                        <tr><td colspan="6" class="text-center py-4"><div class="spinner-border text-success" role="status"></div></td></tr>
+                        <tr>
+                            <td colspan="6" class="text-center py-4">
+                                <div class="spinner-border text-success" role="status"></div>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -268,7 +307,11 @@
                         </tr>
                     </thead>
                     <tbody id="pickupsTableBody">
-                        <tr><td colspan="6" class="text-center py-4"><div class="spinner-border text-success" role="status"></div></td></tr>
+                        <tr>
+                            <td colspan="6" class="text-center py-4">
+                                <div class="spinner-border text-success" role="status"></div>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -279,23 +322,28 @@
     <!-- ==============================================
          GLOBAL MODALS
          ============================================== -->
-    
+
     <!-- Password Auth Modal -->
     <div class="modal fade" id="authModal" tabindex="-1" data-bs-backdrop="static">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content rounded-4 border-0 shadow-lg">
                 <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title fw-bold text-danger"><i class="bi bi-shield-lock-fill me-2"></i>Admin Verification</h5>
+                    <h5 class="modal-title fw-bold text-danger"><i class="bi bi-shield-lock-fill me-2"></i>Admin
+                        Verification</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <p class="text-muted small mb-4">You are attempting a sensitive system update. Please enter your administrator password to proceed.</p>
-                    <input type="password" id="adminPasswordInput" class="form-control form-control-lg bg-light" placeholder="Enter Admin Password">
-                    <div id="authErrorMsg" class="text-danger small fw-bold mt-2" style="display: none;">Invalid Password!</div>
+                    <p class="text-muted small mb-4">You are attempting a sensitive system update. Please enter your
+                        administrator password to proceed.</p>
+                    <input type="password" id="adminPasswordInput" class="form-control form-control-lg bg-light"
+                        placeholder="Enter Admin Password">
+                    <div id="authErrorMsg" class="text-danger small fw-bold mt-2" style="display: none;">Invalid
+                        Password!</div>
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-light fw-bold px-4" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-danger fw-bold px-4" id="authConfirmBtn">Authorize & Save</button>
+                    <button type="button" class="btn btn-danger fw-bold px-4" id="authConfirmBtn">Authorize &
+                        Save</button>
                 </div>
             </div>
         </div>
@@ -317,7 +365,8 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-dark fw-bold px-4 w-100" onclick="triggerSaveUser()">Save Changes</button>
+                    <button type="button" class="btn btn-dark fw-bold px-4 w-100" onclick="triggerSaveUser()">Save
+                        Changes</button>
                 </div>
             </div>
         </div>
@@ -334,8 +383,8 @@
         let socket;
 
         // Current Action State for Auth Modal
-        let pendingAction = null; 
-        
+        let pendingAction = null;
+
         // Modals
         let authModalInit;
         let userEditModalInit;
@@ -360,12 +409,12 @@
             document.querySelectorAll('.admin-section').forEach(sec => sec.classList.remove('active'));
             // Remove active class from navs
             document.querySelectorAll('.nav-link').forEach(nav => nav.classList.remove('active'));
-            
+
             // Activate target
             document.getElementById(`sec-${tabId}`).classList.add('active');
             document.getElementById(`nav-${tabId}`).classList.add('active');
 
-            if(tabId === 'dashboard' && map) {
+            if (tabId === 'dashboard' && map) {
                 setTimeout(() => map.invalidateSize(), 150);
             }
         }
@@ -393,7 +442,7 @@
                 // Load initial worker locations
                 const wRes = await fetch(`${API_BASE}/api/admin/workers/locations`);
                 const workers = await wRes.json();
-                
+
                 const truckIcon = L.divIcon({
                     html: `<div style="background: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 3px solid var(--dark-green); animation: markerPulse 2s infinite;">
                             <i class="bi bi-truck text-dark" style="font-size: 20px;"></i>
@@ -437,8 +486,8 @@
                 const res = await fetch(`${API_BASE}/api/admin/users`);
                 const users = await res.json();
                 const tbody = document.getElementById('usersTableBody');
-                
-                if(users.length === 0) {
+
+                if (users.length === 0) {
                     tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">No users found.</td></tr>`;
                     return;
                 }
@@ -465,7 +514,7 @@
                 const res = await fetch(`${API_BASE}/api/admin/workers`);
                 const workers = await res.json();
                 const tbody = document.getElementById('workersTableBody');
-                
+
                 tbody.innerHTML = workers.map(w => `
                     <tr>
                         <td class="fw-bold text-dark">${w.name}</td>
@@ -476,9 +525,15 @@
                             <span class="badge ${w.status === 'active' || w.status === 'on-route' ? 'bg-success' : 'bg-secondary'}">${w.status.toUpperCase()}</span>
                         </td>
                         <td class="text-end">
-                            <button class="btn btn-sm btn-light border shadow-sm rounded-3" onclick="requestAuth('reassignWorker', '${w._id}')">
-                                <i class="bi bi-gear-fill text-dark"></i> Manage
+                            ${(w.status === 'active' || w.status === 'on-route') ? `
+                            <button class="btn btn-sm btn-outline-danger border shadow-sm rounded-3 fw-bold" onclick="requestAuth('deactivateWorker', '${w._id}')">
+                                <i class="bi bi-person-x-fill text-danger me-1"></i> Deactivate
                             </button>
+                            ` : `
+                            <button class="btn btn-sm btn-outline-success border shadow-sm rounded-3 fw-bold" onclick="requestAuth('activateWorker', '${w._id}')">
+                                <i class="bi bi-person-check-fill text-success me-1"></i> Activate
+                            </button>
+                            `}
                         </td>
                     </tr>
                 `).join('');
@@ -490,12 +545,12 @@
                 const res = await fetch(`${API_BASE}/api/admin/pickups`);
                 const pickups = await res.json();
                 const tbody = document.getElementById('pickupsTableBody');
-                
+
                 tbody.innerHTML = pickups.map(p => {
                     let badgeColor = 'bg-warning text-dark';
-                    if(p.status === 'completed') badgeColor = 'bg-success';
-                    if(p.status === 'missed') badgeColor = 'bg-danger';
-                    if(p.status === 'in-progress') badgeColor = 'bg-primary';
+                    if (p.status === 'completed') badgeColor = 'bg-success';
+                    if (p.status === 'missed') badgeColor = 'bg-danger';
+                    if (p.status === 'in-progress') badgeColor = 'bg-primary';
 
                     return `
                     <tr>
@@ -508,9 +563,13 @@
                         <td><span class="badge ${badgeColor}">${p.status.toUpperCase()}</span></td>
                         <td>${p.worker?.name || '<span class="text-muted fst-italic">Unassigned</span>'}</td>
                         <td class="text-end">
-                            <button class="btn btn-sm btn-light border shadow-sm rounded-3">
-                                <i class="bi bi-three-dots-vertical"></i>
+                            ${(p.status === 'scheduled' || p.status === 'in-progress') ? `
+                            <button class="btn btn-sm btn-outline-danger border shadow-sm rounded-3 fw-bold" onclick="requestAuth('cancelPickup', '${p._id}')">
+                                <i class="bi bi-x-circle-fill text-danger me-1"></i> Cancel
                             </button>
+                            ` : `
+                            <span class="text-muted small fst-italic">No Actions</span>
+                            `}
                         </td>
                     </tr>
                 `}).join('');
@@ -534,7 +593,7 @@
                 userId: document.getElementById('editUserId').value,
                 newPoints: parseInt(document.getElementById('editUserPoints').value)
             };
-            
+
             // Pop the auth modal
             document.getElementById('adminPasswordInput').value = '';
             document.getElementById('authErrorMsg').style.display = 'none';
@@ -550,8 +609,8 @@
 
         async function executePendingAction() {
             const password = document.getElementById('adminPasswordInput').value;
-            if(!password) return;
-            
+            if (!password) return;
+
             const btn = document.getElementById('authConfirmBtn');
             const originalText = btn.innerHTML;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Verifying...';
@@ -559,36 +618,64 @@
             document.getElementById('authErrorMsg').style.display = 'none';
 
             try {
-                if(pendingAction.type === 'updateUserPoints') {
+                if (pendingAction.type === 'updateUserPoints') {
                     const res = await fetch(`${API_BASE}/api/admin/users/${pendingAction.userId}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
+                        body: JSON.stringify({
                             adminPassword: password,
                             points: { total: pendingAction.newPoints } // Simplifying for demo
                         })
                     });
 
-                    if(res.ok) {
+                    if (res.ok) {
                         authModalInit.hide();
                         loadUsers(); // refresh data
                         alert('User points updated successfully.');
                     } else {
                         throw new Error('Invalid Password or Server Error');
                     }
-                } else if (pendingAction.type === 'reassignWorker') {
-                    // Mock implementation for worker manage
+                } else if (pendingAction.type === 'deactivateWorker') {
                     const res = await fetch(`${API_BASE}/api/admin/workers/${pendingAction.targetId}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ adminPassword: password, status: 'inactive' })
                     });
-                    if(res.ok) {
+                    if (res.ok) {
                         authModalInit.hide();
                         loadWorkers();
+                        loadDashboardStats(); // Refresh active worker stats/map
                         alert('Worker deactivated successfully.');
                     } else {
-                         throw new Error('Invalid Password');
+                        throw new Error('Invalid Password or Server Error');
+                    }
+                } else if (pendingAction.type === 'activateWorker') {
+                    const res = await fetch(`${API_BASE}/api/admin/workers/${pendingAction.targetId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ adminPassword: password, status: 'active' })
+                    });
+                    if (res.ok) {
+                        authModalInit.hide();
+                        loadWorkers();
+                        loadDashboardStats(); // Refresh active worker stats/map
+                        alert('Worker activated successfully.');
+                    } else {
+                        throw new Error('Invalid Password or Server Error');
+                    }
+                } else if (pendingAction.type === 'cancelPickup') {
+                    const res = await fetch(`${API_BASE}/api/admin/pickups/${pendingAction.targetId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ adminPassword: password, status: 'cancelled' })
+                    });
+                    if (res.ok) {
+                        authModalInit.hide();
+                        loadPickups();
+                        loadDashboardStats(); // Refresh pickup stats
+                        alert('Pickup cancelled successfully.');
+                    } else {
+                        throw new Error('Invalid Password or Server Error');
                     }
                 }
             } catch (e) {
@@ -601,4 +688,5 @@
         }
     </script>
 </body>
+
 </html>ml>

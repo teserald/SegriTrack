@@ -10,12 +10,12 @@ async function seedHistory() {
         await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/segritrack');
         console.log('[SEED] Connected to MongoDB');
 
-        // Find demo user and demo worker
-        const demoUser = await User.findOne({ email: 'user@segritrack.com' });
+        // Find demo users and demo worker
+        const users = await User.find({ email: { $regex: /user.*@segritrack\.com/ } });
         const demoWorker = await Worker.findOne({ email: 'worker@segritrack.com' });
 
-        if (!demoUser || !demoWorker) {
-            console.log('[SEED] Demo User or Worker not found. Run seedDemo.js first.');
+        if (users.length === 0 || !demoWorker) {
+            console.log('[SEED] Demo Users or Worker not found. Run seedDemo.js first.');
             process.exit(1);
         }
 
@@ -61,8 +61,11 @@ async function seedHistory() {
             // Random slot
             const slot = slots[Math.floor(Math.random() * slots.length)];
 
+            // Select a random user from the pool
+            const randomUser = users[Math.floor(Math.random() * users.length)];
+
             pastPickups.push({
-                user: demoUser._id,
+                user: randomUser._id,
                 worker: demoWorker._id,
                 location: {
                     address: loc.address,
