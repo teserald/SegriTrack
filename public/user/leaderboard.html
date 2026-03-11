@@ -203,8 +203,9 @@
                     const podiumContainer = document.querySelector('.podium-container');
                     listContainer.innerHTML = '<div class="p-4 text-center">Loading rankings...</div>';
 
+                    const API_BASE = (window.location.port === '5500' || window.location.port === '5501') ? 'http://localhost:3000' : '';
                     try {
-                        const res = await fetch('http://localhost:3000/api/user/leaderboard');
+                        const res = await fetch(`${API_BASE}/api/user/leaderboard`);
                         const leaders = await res.json();
 
                         // Update Podium (Top 3)
@@ -254,7 +255,7 @@
                         const userId = localStorage.getItem('userId');
                         if (userId) {
                             try {
-                                const profileRes = await fetch(`http://localhost:3000/api/user/profile/${userId}`);
+                                const profileRes = await fetch(`${API_BASE}/api/user/profile/${userId}`);
                                 const currentUser = await profileRes.json();
                                 const rankIdx = leaders.findIndex(l => l._id === userId);
                                 const rank = rankIdx >= 0 ? rankIdx + 1 : leaders.length + 1;

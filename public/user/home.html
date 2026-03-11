@@ -386,13 +386,15 @@
     </footer>
 
     <script>
+        const API_BASE = (window.location.port === '5500' || window.location.port === '5501') ? 'http://localhost:3000' : '';
+
         document.addEventListener('DOMContentLoaded', async () => {
             const userId = localStorage.getItem('userId');
 
             // Fetch User Stats
             if (userId) {
                 try {
-                    const res = await fetch(`http://localhost:3000/api/user/stats/${userId}`);
+                    const res = await fetch(`${API_BASE}/api/user/stats/${userId}`);
                     if (!res.ok) throw new Error(`HTTP ${res.status}`);
                     const points = await res.json();
 
@@ -420,7 +422,7 @@
 
             // Fetch Global Impact
             try {
-                const res = await fetch('http://localhost:3000/api/user/impact');
+                const res = await fetch(`${API_BASE}/api/user/impact`);
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
 
@@ -447,7 +449,7 @@
             async function checkActivePickup() {
                 if (!userId) return;
                 try {
-                    const res = await fetch(`http://localhost:3000/api/pickup/user/${userId}/active`);
+                    const res = await fetch(`${API_BASE}/api/pickup/user/${userId}/active`);
                     if (!res.ok) return;
                     const pickup = await res.json();
 

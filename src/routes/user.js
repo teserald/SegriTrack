@@ -77,11 +77,37 @@ router.get('/leaderboard', async (req, res) => {
 
 // 4. GET Global Impact Stats
 router.get('/impact', async (req, res) => {
-    res.json({
-        wasteCollected: '5,200 Kg',
-        rewardsDistributed: '₹1.2 Lakh',
-        treesSaved: '1,400+'
-    });
+    try {
+        const Pickup = require('../models/Pickup');
+        const count = await Pickup.countDocuments({ status: 'completed' });
+        
+        // Assume ~2.5 kg avg waste per pickup
+        const wasteKg = (count * 2.5).toFixed(1);
+        
+        // Calculate total distributed rewards
+        const users = await User.find({}, 'points');
+        let totalEcoPoints = 0;
+        users.forEach(u => {
+            if (u.points && u.points.ecoPoints) {
+                totalEcoPoints += u.points.ecoPoints;
+            }
+        });
+        
+        // Assume 1 EcoPoint = ₹0.5 for impact display
+        const rewardsRupees = (totalEcoPoints * 0.5) / 1000;
+        
+        // Assume 50 kg of recycled waste saves ~1 tree
+        const trees = Math.max(0, Math.floor(wasteKg / 50));
+
+        res.json({
+            wasteCollected: `${wasteKg} Kg`,
+            rewardsDistributed: `₹${rewardsRupees.toFixed(2)}k`,
+            treesSaved: `${trees}+`
+        });
+    } catch (err) {
+        console.error("Impact API Error:", err);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 module.exports = router;
