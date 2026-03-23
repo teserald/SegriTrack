@@ -281,6 +281,7 @@
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <script>
         const API_BASE = (window.location.port === '3000') ? '' : 'http://localhost:3000';
 
@@ -328,8 +329,9 @@
                 iconSize: [40, 40],
                 iconAnchor: [20, 20]
             });
-            L.marker([workerLat, workerLng], { icon: truckIcon }).addTo(map).bindPopup(`<b
-        style='font-family: Outfit;'>${workerName}</b><br>Current Starting Point`).openPopup();
+            const workerMarkerLeafletInstance = L.marker([workerLat, workerLng], { icon: truckIcon }).addTo(map).bindPopup(`<b
+        style='font-family: Outfit;'>${workerName}</b><br>Current Starting Point`);
+            workerMarkerLeafletInstance.openPopup();
 
             const houseIcon = (index) => L.divIcon({
                 html: `<div
@@ -566,6 +568,16 @@
                     }
                 }
             }, { passive: false });
+
+            // Socket logic to move the marker dynamically if the simulation is active gracefully!
+            try {
+                const socket = io(API_BASE);
+                socket.on('workerLocation', (data) => {
+                    if (data.workerId === workerId) {
+                        workerMarkerLeafletInstance.setLatLng([data.lat, data.lng]);
+                    }
+                });
+            } catch (e) { console.error("Socket err", e); }
         });
     </script>
 </body>

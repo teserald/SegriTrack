@@ -45,7 +45,7 @@ const verifyAdminPassword = (req, res, next) => {
 };
 
 // ----------------------------------------------------
-// Dashboard & Stats
+// Dashboard & Analytics
 // ----------------------------------------------------
 router.get('/stats', async (req, res) => {
     try {
@@ -66,6 +66,30 @@ router.get('/stats', async (req, res) => {
             activeWorkers,
             segregationRate: `${rate}%`,
             pendingIssues
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Analytics Route for robust charts
+router.get('/analytics', async (req, res) => {
+    try {
+        // Top 5 Users by EcoPoints
+        const topUsers = await User.find().sort({ 'points.total': -1 }).limit(5).select('name points.total points.ecoPoints');
+        
+        // Segregation Quality Breakdown
+        const completedPickups = await Pickup.find({ status: 'completed' });
+        const qualities = { Excellent: 0, Good: 0, Average: 0, Mixed: 0, Poor: 0 };
+        completedPickups.forEach(p => {
+            let q = p.segregationDetails?.quality || 'Average';
+            if (qualities[q] !== undefined) qualities[q]++;
+            else qualities['Average']++; // Default if corrupted
+        });
+
+        res.json({
+            topUsers,
+            qualities
         });
     } catch (err) {
         res.status(500).json({ error: err.message });

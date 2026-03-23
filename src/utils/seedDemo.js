@@ -34,15 +34,29 @@ async function seedDemoPickups() {
                         }
                     }
                 });
-                await user.save();
             } else {
-                await User.findByIdAndUpdate(user._id, {
-                    name: name,
-                    'address.street': addressStreet,
-                    'address.city': 'Adoor',
-                    'address.location.coordinates': DEMO_USER_COORDS
-                });
+                user.name = name;
+                user.address.street = addressStreet;
+                user.address.city = 'Adoor';
+                user.address.location.coordinates = DEMO_USER_COORDS;
             }
+            
+            // Give demo users some points to show on the leaderboard
+            // Main user gets realistic points, others get random points
+            const eco = i === 1 ? 160 : Math.floor(Math.random() * 500) + 50; 
+            const gems = i === 1 ? 3 : Math.floor(Math.random() * 10);
+            
+            // Pt = (Ep/4) + (5*Gm)
+            const totalPt = Math.round((eco / 4) + (5 * gems));
+
+            user.points = {
+                total: totalPt,
+                ecoPoints: eco,
+                gems: gems
+            };
+
+            await user.save();
+            
             if (i === 1) mainUser = user;
             userMocks.push(user);
         }
@@ -158,9 +172,52 @@ async function seedDemoPickups() {
         await Pickup.insertMany(tasks);
         console.log('[SEED] Successfully seeded 5 demo pickups for Route Optimization display.');
 
+        // Generate 100 Completed Pickups assigned to Workers for robust UI History/Analytics display
+        await Pickup.deleteMany({ qrCode: /HIST-/ });
+        const historyPickups = [];
+        for (const worker of workerMocks) {
+            for (let i = 0; i < 20; i++) {
+                const randomUser = userMocks[Math.floor(Math.random() * userMocks.length)];
+                const qualities = ['Excellent', 'Good', 'Average', 'Poor'];
+                const randomQuality = qualities[Math.floor(Math.random() * qualities.length)];
+
+                historyPickups.push({
+                    user: randomUser._id,
+                    worker: worker._id,
+                    date: new Date(Date.now() - Math.floor(Math.random() * 30 * 24 * 60 * 60 * 1000)),
+                    slot: 'Morning (08:00 AM - 10:00 AM)',
+                    type: 'default',
+                    status: 'completed',
+                    qrCode: `HIST-${worker._id.toString().substring(0,4)}-${Math.floor(Math.random()*10000)}`,
+                    location: {
+                        address: 'Historical SegriTrack Location',
+                        type: 'Point',
+                        coordinates: [76.7450 + (Math.random() * 0.05), 9.1600 + (Math.random() * 0.05)]
+                    },
+                    segregationDetails: { quality: randomQuality, photoUrl: '' }
+                });
+            }
+        }
+        await Pickup.insertMany(historyPickups);
+        console.log(`[SEED] Created ${historyPickups.length} Historical Pickups successfully assigned to ${workerMocks.length} workers.`);
+
     } catch (err) {
         console.error('[SEED Error]', err);
     }
 }
 
 module.exports = seedDemoPickups;
+
+// Run directly if called via `node src/utils/seedDemo.js`
+if (require.main === module) {
+    mongoose.connect('mongodb://localhost:27017/segritrack', { useNewUrlParser: true, useUnifiedTopology: true })
+        .then(async () => {
+            console.log('[SEED] Connected to MongoDB locally.');
+            await seedDemoPickups();
+            process.exit(0);
+        })
+        .catch(err => {
+            console.error('[SEED Error]', err);
+            process.exit(1);
+        });
+}

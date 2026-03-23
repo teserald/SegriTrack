@@ -369,6 +369,9 @@
                 if (typeof io !== 'undefined') {
                     socket = io(API_BASE);
                     console.log("Socket connected to:", API_BASE || "window.origin");
+                    
+                    socket.on('pickupReassigned', () => fetchPickups());
+                    socket.on('pickupUnattended', () => fetchPickups());
                 } else {
                     console.error("Socket.io script failed to load. Are you on port 3000?");
                 }
@@ -461,6 +464,13 @@
 
                 const targetTime = activeTask.slot || 'ASAP';
 
+                let statusBadgeHTML = '<span class="fw-bold text-success d-block lh-1 mb-0" style="font-size: 0.65rem; letter-spacing: 1px;">ACTIVE TASK</span>';
+                if(activeTask.status === 'reassigned') {
+                    statusBadgeHTML = '<span class="fw-bold text-danger d-block lh-1 mb-0" style="font-size: 0.65rem; letter-spacing: 1px;"><i class="bi bi-exclamation-triangle-fill me-1"></i>URGENT REASSIGNMENT</span>';
+                } else if (activeTask.status === 'unattended') {
+                    statusBadgeHTML = '<span class="fw-bold text-primary d-block lh-1 mb-0" style="font-size: 0.65rem; letter-spacing: 1px;"><i class="bi bi-box-seam me-1"></i>UNATTENDED SECURED</span>';
+                }
+
                 const wasteTypeBadge = activeTask.type === 'special' ?
                     '<span class="badge bg-warning text-dark"><i class="bi bi-box-seam me-1"></i> Special</span>' :
                     '<span class="badge bg-light text-dark border"><i class="bi bi-trash me-1"></i> Default</span>';
@@ -477,7 +487,7 @@
                 <i class="bi bi-geo-alt-fill fs-6"></i>
             </div>
             <div>
-                <span class="fw-bold text-success d-block lh-1 mb-0" style="font-size: 0.65rem; letter-spacing: 1px;">ACTIVE TASK</span>
+                ${statusBadgeHTML}
             </div>
         </div>
 
@@ -515,7 +525,13 @@
                 if (upcomingTasks.length === 0) {
                     listContainer.innerHTML = `<div class="glass-card text-center text-muted py-4 small mt-2">No more tasks queued for today. Enjoy your break!</div>`;
                 } else {
-                    listContainer.innerHTML = upcomingTasks.map((p, index) => `
+                    listContainer.innerHTML = upcomingTasks.map((p, index) => {
+                        let innerBadge = '<i class="bi bi-clock-fill me-1 opacity-50"></i>' + (p.slot || 'ASAP');
+                        let badgeBg = 'bg-light text-dark p-0';
+                        if(p.status === 'reassigned') { innerBadge = 'URGENT'; badgeBg = 'bg-danger text-white px-2 py-1'; }
+                        if(p.status === 'unattended') { innerBadge = 'UNATTENDED'; badgeBg = 'bg-primary text-white px-2 py-1'; }
+                        
+                        return `
     <div class="pickup-card p-3 shadow-sm" onclick="openAction('${p._id}')">
         <div class="d-flex align-items-center">
             <div class="bg-light rounded-circle d-flex align-items-center justify-content-center me-3 fw-bold border border-white shadow-sm"
@@ -529,8 +545,8 @@
                         <i class="bi bi-upc-scan me-1"></i>${p.qrCode || '---'}
                     </span>
                     <span class="text-muted opacity-25">•</span>
-                    <span class="badge bg-light text-dark fw-bold border-0 p-0" style="font-size: 0.7rem;">
-                        <i class="bi bi-clock-fill me-1 opacity-50"></i>${p.slot || 'ASAP'}
+                    <span class="badge ${badgeBg} fw-bold border-0" style="font-size: 0.7rem;">
+                        ${innerBadge}
                     </span>
                 </div>
             </div>
@@ -540,8 +556,8 @@
                 </button>
             </div>
         </div>
-    </div>
-    `).join('');
+    </div>`;
+                    }).join('');
                 }
 
             } catch (e) {
@@ -735,11 +751,25 @@
             }
         }
 
-        function startLocationSharing(workerId) {
+        async function startLocationSharing(workerId) {
             if (!socket) return;
             stopLocationSharing(); // Clear any existing interval first
             let lat = 9.1600; // Distinct starting latitude
             let lng = 76.7450; // Distinct starting longitude
+            
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/workers`);
+                if (res.ok) {
+                    const workers = await res.json();
+                    const me = workers.find(w => w._id === workerId);
+                    if (me && me.currentLocation && me.currentLocation.coordinates) {
+                        if (me.currentLocation.coordinates[1] !== 0) {
+                            lat = me.currentLocation.coordinates[1];
+                            lng = me.currentLocation.coordinates[0];
+                        }
+                    }
+                }
+            } catch(e) { console.error("Error setting initial coords", e); }
 
             locationInterval = setInterval(() => {
                 lat += (Math.random() - 0.5) * 0.001;

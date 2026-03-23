@@ -348,18 +348,61 @@ router.put('/:id/status', async (req, res) => {
 
         if (!pickup) return res.status(404).json({ message: 'Pickup not found' });
 
-        // 2. If completed, sync worker location to this pickup's location
-        if (status === 'completed' && workerId) {
-            const Worker = require('../models/Worker');
-            // Prevent syncing [0,0] coordinates
-            if (pickup.location.coordinates && (pickup.location.coordinates[0] !== 0 || pickup.location.coordinates[1] !== 0)) {
-                await Worker.findByIdAndUpdate(workerId, {
-                    'currentLocation.coordinates': pickup.location.coordinates,
-                    'currentLocation.lastUpdated': new Date()
-                });
-                console.log(`[SYNC] Worker ${workerId} location moved to completed pickup: ${pickup.location.address}`);
-            } else {
-                console.warn(`[SYNC] Skipped location sync for Worker ${workerId} - Pickup location was [0,0]`);
+        // 2. If completed, sync worker location to this pickup's location and award points
+        if (status === 'completed') {
+            // A. Sync Worker Location
+            if (workerId) {
+                const Worker = require('../models/Worker');
+                // Prevent syncing [0,0] coordinates
+                if (pickup.location.coordinates && (pickup.location.coordinates[0] !== 0 || pickup.location.coordinates[1] !== 0)) {
+                    await Worker.findByIdAndUpdate(workerId, {
+                        'currentLocation.coordinates': pickup.location.coordinates,
+                        'currentLocation.lastUpdated': new Date()
+                    });
+                    console.log(`[SYNC] Worker ${workerId} location moved to completed pickup: ${pickup.location.address}`);
+                } else {
+                    console.warn(`[SYNC] Skipped location sync for Worker ${workerId} - Pickup location was [0,0]`);
+                }
+            }
+
+            // B. Award Points to User
+            const User = require('../models/User');
+            const user = await User.findById(pickup.user);
+            if (user) {
+                if (!user.points) user.points = { total: 0, ecoPoints: 0, gems: 0 };
+                
+                let earnedEco = 0;
+                let earnedGems = 0;
+                
+                const quality = segregationDetails?.quality || 'Average';
+                
+                // Demo Points Logic based on Quality
+                if (quality === 'Excellent') {
+                    earnedEco = 50;
+                    earnedGems = 2;
+                } else if (quality === 'Good' || quality === 'Average') {
+                    earnedEco = 20;
+                    earnedGems = 1;
+                } else {
+                    earnedEco = 5;
+                    earnedGems = 0;
+                }
+                
+                // Delay points by 24h
+                setTimeout(async () => {
+                    try {
+                        const fetchedUser = await User.findById(user._id);
+                        if(fetchedUser) {
+                            fetchedUser.points.ecoPoints += earnedEco;
+                            fetchedUser.points.gems += earnedGems;
+                            fetchedUser.points.total = Math.round((fetchedUser.points.ecoPoints / 4) + (5 * fetchedUser.points.gems));
+                            await fetchedUser.save();
+                            console.log(`[REWARDS DELAYED] Awarded pending ${earnedEco} Eco, ${earnedGems} Gems to User ${fetchedUser._id}.`);
+                        }
+                    } catch(e) {}
+                }, 24 * 60 * 60 * 1000);
+                
+                console.log(`[REWARDS PENDING] ${earnedEco} Eco, ${earnedGems} Gems to User ${user._id} pending for 24 hours.`);
             }
         }
 
@@ -388,6 +431,130 @@ router.put('/:id/arrive', async (req, res) => {
         res.json({ success: true });
     } catch (err) {
         console.error("Arrive Update Error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// User: Request Reassignment (Worker is too late)
+router.post('/:id/reassign', async (req, res) => {
+    try {
+        const pickupId = req.params.id;
+        const pickup = await Pickup.findById(pickupId).populate('worker', 'name');
+        if (!pickup) return res.status(404).json({ message: 'Pickup not found' });
+        
+        const originalWorkerId = pickup.worker ? pickup.worker._id : null;
+        
+        const Worker = require('../models/Worker');
+        const activeWorkers = await Worker.find({ 
+            status: { $in: ['active', 'on-route'] },
+            _id: { $ne: originalWorkerId }
+        });
+        
+        let nearestWorker = null;
+        let minDistance = Infinity;
+        
+        if (activeWorkers.length > 0 && pickup.location?.coordinates) {
+            const getDistance = (c1, c2) => {
+                const R = 6371;
+                const dLat = (c2[1] - c1[1]) * Math.PI / 180;
+                const dLon = (c2[0] - c1[0]) * Math.PI / 180;
+                const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(c1[1] * Math.PI / 180) * Math.cos(c2[1] * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+            };
+            
+            for (const worker of activeWorkers) {
+                if (worker.currentLocation?.coordinates) {
+                    const dist = getDistance(pickup.location.coordinates, worker.currentLocation.coordinates);
+                    if (dist < minDistance && dist <= 15) {
+                        minDistance = dist;
+                        nearestWorker = worker;
+                    }
+                }
+            }
+        }
+        
+        if (!nearestWorker) {
+            return res.status(400).json({ message: 'No alternative workers available nearby. Please try again later.' });
+        }
+        
+        pickup.worker = nearestWorker._id;
+        pickup.status = 'reassigned'; 
+        pickup.issueReport = {
+            type: 'late_reassigned',
+            reportedAt: new Date(),
+            originalWorker: originalWorkerId
+        };
+        await pickup.save();
+        
+        const newPickup = await Pickup.findById(pickupId).populate('worker', 'name phone currentLocation status');
+        
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('pickupReassigned', { pickupId, newWorkerId: nearestWorker._id, oldWorkerId: originalWorkerId });
+        }
+        
+        res.json({ message: 'Reassigned successfully', pickup: newPickup });
+    } catch (err) {
+        console.error("Reassign Error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// User: Mark as Unattended (Secure & Leave)
+router.post('/:id/unattended', async (req, res) => {
+    try {
+        const { photoUrl } = req.body;
+        const pickupId = req.params.id;
+        
+        const pickup = await Pickup.findById(pickupId);
+        if (!pickup) return res.status(404).json({ message: 'Pickup not found' });
+        
+        pickup.status = 'unattended';
+        pickup.issueReport = {
+            type: 'unattended',
+            reportedAt: new Date(),
+            photoUrl: photoUrl || 'dummy_url.jpg',
+            originalWorker: pickup.worker
+        };
+        await pickup.save();
+        
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('pickupUnattended', { pickupId, workerId: pickup.worker });
+        }
+        
+        res.json({ message: 'Unattended pickup secured', pickup });
+    } catch (err) {
+        console.error("Unattended Error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// User: Rate Worker post-pickup
+router.post('/worker/:id/rate', async (req, res) => {
+    try {
+        const { userId, pickupId, score, tags, comment } = req.body;
+        const Worker = require('../models/Worker');
+        const worker = await Worker.findById(req.params.id);
+        
+        if (!worker) return res.status(404).json({ message: 'Worker not found' });
+        
+        worker.ratings.push({
+            user: userId,
+            pickup: pickupId,
+            score: Number(score),
+            tags: tags || [],
+            comment: comment || ''
+        });
+        
+        const total = worker.ratings.reduce((acc, r) => acc + r.score, 0);
+        worker.averageRating = Number((total / worker.ratings.length).toFixed(1));
+        
+        await worker.save();
+        
+        res.json({ message: 'Rating submitted', averageRating: worker.averageRating });
+    } catch (err) {
+        console.error("Rating Error:", err);
         res.status(500).json({ error: err.message });
     }
 });

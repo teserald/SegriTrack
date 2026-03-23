@@ -6,7 +6,7 @@ const PickupSchema = new mongoose.Schema({
     date: { type: Date, required: true },
     slot: { type: String, required: true },
     type: { type: String, enum: ['default', 'special'], default: 'default' },
-    status: { type: String, enum: ['scheduled', 'in-progress', 'completed', 'missed'], default: 'scheduled' },
+    status: { type: String, enum: ['scheduled', 'in-progress', 'completed', 'missed', 'unattended', 'reassigned'], default: 'scheduled' },
     location: {
         address: String,
         type: { type: String, default: 'Point' },
@@ -18,6 +18,12 @@ const PickupSchema = new mongoose.Schema({
         photoUrl: String
     },
     qrCode: { type: String, unique: true }, // Unique token for verification
+    issueReport: {
+        type: { type: String, enum: ['late_reassigned', 'unattended', 'none'], default: 'none' },
+        reportedAt: Date,
+        photoUrl: String,
+        originalWorker: { type: mongoose.Schema.Types.ObjectId, ref: 'Worker' }
+    },
     createdAt: { type: Date, default: Date.now }
 });
 
