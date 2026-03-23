@@ -195,8 +195,9 @@
                 const userId = localStorage.getItem('userId');
                 if (!userId) return;
 
+                const API_BASE = (window.location.port === '5500' || window.location.port === '5501') ? 'http://localhost:3000' : '';
                 try {
-                    const res = await fetch(`http://localhost:3000/api/user/profile/${userId}`);
+                    const res = await fetch(`${API_BASE}/api/user/profile/${userId}`);
                     const user = await res.json();
 
                     // Update Header

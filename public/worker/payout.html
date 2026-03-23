@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SegriTrack Worker | Payout History</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --main-green: #01f386;
+            --dark-green: #004d37;
+            --glass: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.3);
+        }
+
+        body {
+            background: #f0f4f8;
+            font-family: 'Outfit', sans-serif;
+            color: #1e293b;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: rgba(0, 77, 55, 0.85) !important;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .back-btn {
+            color: white;
+            font-size: 1.5rem;
+            text-decoration: none;
+            margin-right: 15px;
+            transition: color 0.3s;
+        }
+
+        .back-btn:hover {
+            color: var(--main-green);
+        }
+
+        .balance-card {
+            background: linear-gradient(135deg, var(--dark-green) 0%, #002e21 100%);
+            border-radius: 24px;
+            padding: 30px 25px;
+            color: white;
+            box-shadow: 0 10px 30px rgba(0, 77, 55, 0.2);
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 25px;
+        }
+
+        .balance-card::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(1, 243, 134, 0.15) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+
+        .amount-display {
+            font-size: 2.8rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .payout-list {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+            border: 1px solid #f1f5f9;
+        }
+
+        .payout-item {
+            padding: 20px;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .payout-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-badge {
+            background: rgba(1, 243, 134, 0.15);
+            color: var(--dark-green);
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="navbar navbar-dark py-3 sticky-top">
+        <div class="container d-flex align-items-center">
+            <a href="profile.html" class="back-btn"><i class="bi bi-arrow-left"></i></a>
+            <span class="navbar-brand fw-bold mb-0 fs-5 text-white" style="letter-spacing: -0.5px;">Payouts</span>
+        </div>
+    </nav>
+
+    <div class="container py-4" style="max-width: 600px;">
+
+        <div class="balance-card">
+            <p class="mb-0 text-white-50 fw-bold small text-uppercase flex-grow-1" style="letter-spacing: 1px;">
+                Estimated Next Payout</p>
+            <div class="amount-display">
+                <span class="fs-4 me-1 opacity-75">₹</span>4,250
+            </div>
+            <p class="small mb-0 opacity-75"><i class="bi bi-clock"></i> Scheduled for Friday, Jan 30</p>
+        </div>
+
+        <h6 class="fw-bold text-muted small mb-3 ps-2" style="letter-spacing: 1px;">RECENT PAYOUTS</h6>
+
+        <div class="payout-list">
+            <div class="payout-item">
+                <div>
+                    <div class="fw-bold text-dark">Jan 17 - Jan 23</div>
+                    <div class="small text-muted mt-1">Ref: #PAY-8392</div>
+                </div>
+                <div class="text-end">
+                    <div class="fw-bold fs-5 text-dark">₹4,820</div>
+                    <div class="status-badge mt-1"><i class="bi bi-check-circle-fill"></i> PAID</div>
+                </div>
+            </div>
+            <div class="payout-item">
+                <div>
+                    <div class="fw-bold text-dark">Jan 10 - Jan 16</div>
+                    <div class="small text-muted mt-1">Ref: #PAY-8104</div>
+                </div>
+                <div class="text-end">
+                    <div class="fw-bold fs-5 text-dark">₹5,100</div>
+                    <div class="status-badge mt-1"><i class="bi bi-check-circle-fill"></i> PAID</div>
+                </div>
+            </div>
+            <div class="payout-item">
+                <div>
+                    <div class="fw-bold text-dark">Jan 3 - Jan 9</div>
+                    <div class="small text-muted mt-1">Ref: #PAY-7922</div>
+                </div>
+                <div class="text-end">
+                    <div class="fw-bold fs-5 text-dark">₹3,950</div>
+                    <div class="status-badge mt-1"><i class="bi bi-check-circle-fill"></i> PAID</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+
+</html>

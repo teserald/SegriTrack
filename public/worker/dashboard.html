@@ -212,24 +212,24 @@
         <div class="container">
             <div class="row g-3">
                 <div class="col-4">
-                    <div class="glass-card text-center h-100">
-                        <i class="bi bi-list-check text-primary mb-2 d-inline-block fs-4"></i>
-                        <h4 class="fw-bold mb-0 text-dark" id="statTasks">--</h4>
-                        <small class="text-muted fw-bold" style="font-size: 0.65rem;">TASKS</small>
+                    <div class="glass-card text-center h-100 p-2">
+                        <i class="bi bi-calendar-check text-primary mb-2 d-inline-block fs-4"></i>
+                        <h4 class="fw-bold mb-0 text-dark" id="statMonthlyTasks">--</h4>
+                        <small class="text-muted fw-bold" style="font-size: 0.60rem;">MONTHLY DONE</small>
                     </div>
                 </div>
                 <div class="col-4">
-                    <div class="glass-card text-center h-100">
+                    <div class="glass-card text-center h-100 p-2 border border-success border-opacity-25 bg-success bg-opacity-10">
                         <i class="bi bi-wallet2 text-success mb-2 d-inline-block fs-4"></i>
-                        <h4 class="fw-bold mb-0" style="color: #059669;">₹140</h4>
-                        <small class="text-muted fw-bold" style="font-size: 0.65rem;">EARNINGS</small>
+                        <h4 class="fw-bold mb-0" style="color: #059669;" id="statEarnings">--</h4>
+                        <small class="text-success fw-bold" style="font-size: 0.60rem;">EARNINGS (₹)</small>
                     </div>
                 </div>
                 <div class="col-4">
-                    <div class="glass-card text-center h-100">
-                        <i class="bi bi-lightning-charge text-warning mb-2 d-inline-block fs-4"></i>
-                        <h4 class="fw-bold mb-0 text-dark">4.2<small class="fs-6 fw-normal">km</small></h4>
-                        <small class="text-muted fw-bold" style="font-size: 0.65rem;">RANGE</small>
+                    <div class="glass-card text-center h-100 p-2">
+                        <i class="bi bi-list-task text-warning mb-2 d-inline-block fs-4"></i>
+                        <h4 class="fw-bold mb-0 text-dark" id="statActiveTasks">--</h4>
+                        <small class="text-muted fw-bold" style="font-size: 0.60rem;">ACTIVE QUEUE</small>
                     </div>
                 </div>
             </div>
@@ -369,6 +369,9 @@
                 if (typeof io !== 'undefined') {
                     socket = io(API_BASE);
                     console.log("Socket connected to:", API_BASE || "window.origin");
+                    
+                    socket.on('pickupReassigned', () => fetchPickups());
+                    socket.on('pickupUnattended', () => fetchPickups());
                 } else {
                     console.error("Socket.io script failed to load. Are you on port 3000?");
                 }
@@ -421,17 +424,26 @@
         // ===== FETCH PICKUPS =====
         async function fetchPickups() {
             try {
-                const res = await fetch(`${API_BASE}/api/pickup/assigned`);
+                const workerId = localStorage.getItem('workerId');
+                const url = workerId
+                    ? `${API_BASE}/api/pickup/assigned?workerId=${workerId}&radiusKm=10`
+                    : `${API_BASE}/api/pickup/assigned`;
+
+                const res = await fetch(url);
                 if (!res.ok) {
                     throw new Error(`HTTP error! status: ${res.status}`);
                 }
                 const pickups = await res.json();
                 console.log("Fetched Pickups:", pickups);
 
+                // Also fetch monthly stats
+                await fetchMonthlyStats(workerId);
+
                 const activeContainer = document.getElementById('activeTaskContainer');
                 const listContainer = document.getElementById('pickupList');
 
-                document.getElementById('statTasks').innerText = pickups.length;
+                document.getElementById('statActiveTasks').innerText = pickups.length;
+
 
                 if (pickups.length === 0) {
                     activeContainer.innerHTML = `
@@ -452,6 +464,13 @@
 
                 const targetTime = activeTask.slot || 'ASAP';
 
+                let statusBadgeHTML = '<span class="fw-bold text-success d-block lh-1 mb-0" style="font-size: 0.65rem; letter-spacing: 1px;">ACTIVE TASK</span>';
+                if(activeTask.status === 'reassigned') {
+                    statusBadgeHTML = '<span class="fw-bold text-danger d-block lh-1 mb-0" style="font-size: 0.65rem; letter-spacing: 1px;"><i class="bi bi-exclamation-triangle-fill me-1"></i>URGENT REASSIGNMENT</span>';
+                } else if (activeTask.status === 'unattended') {
+                    statusBadgeHTML = '<span class="fw-bold text-primary d-block lh-1 mb-0" style="font-size: 0.65rem; letter-spacing: 1px;"><i class="bi bi-box-seam me-1"></i>UNATTENDED SECURED</span>';
+                }
+
                 const wasteTypeBadge = activeTask.type === 'special' ?
                     '<span class="badge bg-warning text-dark"><i class="bi bi-box-seam me-1"></i> Special</span>' :
                     '<span class="badge bg-light text-dark border"><i class="bi bi-trash me-1"></i> Default</span>';
@@ -468,7 +487,7 @@
                 <i class="bi bi-geo-alt-fill fs-6"></i>
             </div>
             <div>
-                <span class="fw-bold text-success d-block lh-1 mb-0" style="font-size: 0.65rem; letter-spacing: 1px;">ACTIVE TASK</span>
+                ${statusBadgeHTML}
             </div>
         </div>
 
@@ -483,6 +502,11 @@
                 <i class="bi bi-clock me-1 text-danger small"></i>
                 <span class="fw-bold" style="font-size: 0.7rem;">${targetTime}</span>
             </div>
+            ${activeTask.directDistance ? `
+            <div class="glass-card py-1 px-2 d-flex align-items-center bg-white border border-light" style="border-radius: 10px;">
+                <i class="bi bi-cursor me-1 text-success small"></i>
+                <span class="fw-bold" style="font-size: 0.7rem;">${activeTask.directDistance} km away</span>
+            </div>` : ''}
         </div>
 
         <div class="d-flex gap-2 mt-3 pt-2 border-top border-light">
@@ -501,7 +525,13 @@
                 if (upcomingTasks.length === 0) {
                     listContainer.innerHTML = `<div class="glass-card text-center text-muted py-4 small mt-2">No more tasks queued for today. Enjoy your break!</div>`;
                 } else {
-                    listContainer.innerHTML = upcomingTasks.map((p, index) => `
+                    listContainer.innerHTML = upcomingTasks.map((p, index) => {
+                        let innerBadge = '<i class="bi bi-clock-fill me-1 opacity-50"></i>' + (p.slot || 'ASAP');
+                        let badgeBg = 'bg-light text-dark p-0';
+                        if(p.status === 'reassigned') { innerBadge = 'URGENT'; badgeBg = 'bg-danger text-white px-2 py-1'; }
+                        if(p.status === 'unattended') { innerBadge = 'UNATTENDED'; badgeBg = 'bg-primary text-white px-2 py-1'; }
+                        
+                        return `
     <div class="pickup-card p-3 shadow-sm" onclick="openAction('${p._id}')">
         <div class="d-flex align-items-center">
             <div class="bg-light rounded-circle d-flex align-items-center justify-content-center me-3 fw-bold border border-white shadow-sm"
@@ -515,8 +545,8 @@
                         <i class="bi bi-upc-scan me-1"></i>${p.qrCode || '---'}
                     </span>
                     <span class="text-muted opacity-25">•</span>
-                    <span class="badge bg-light text-dark fw-bold border-0 p-0" style="font-size: 0.7rem;">
-                        <i class="bi bi-clock-fill me-1 opacity-50"></i>${p.slot || 'ASAP'}
+                    <span class="badge ${badgeBg} fw-bold border-0" style="font-size: 0.7rem;">
+                        ${innerBadge}
                     </span>
                 </div>
             </div>
@@ -526,8 +556,8 @@
                 </button>
             </div>
         </div>
-    </div>
-    `).join('');
+    </div>`;
+                    }).join('');
                 }
 
             } catch (e) {
@@ -536,11 +566,59 @@
             }
         }
 
+        async function fetchMonthlyStats(workerId) {
+            if (!workerId) return;
+            try {
+                // Fetch completed pickups specifically
+                const res = await fetch(`/api/pickup/worker/${workerId}/history`);
+                if (res.ok) {
+                    const completed = await res.json();
+                    
+                    // Filter for only this month's data (last 30 days)
+                    const thirtyDaysAgo = new Date();
+                    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                    
+                    const monthlyTasks = completed.filter(p => new Date(p.date) >= thirtyDaysAgo);
+                    
+                    document.getElementById('statMonthlyTasks').innerText = monthlyTasks.length;
+                    
+                    // Sum up earnings, assuming each history item has earnings or fallback to calculating via points
+                    let totalEarnings = 0;
+                    monthlyTasks.forEach(p => {
+                        if (p.earnings) {
+                            totalEarnings += p.earnings;
+                        } else if (p.wasteDetails && p.wasteDetails.pointsAwarded) {
+                            totalEarnings += p.wasteDetails.pointsAwarded * 2; // Conversion rate
+                        } else {
+                            totalEarnings += 20; // Default fallback earning per task
+                        }
+                    });
+                    
+                    document.getElementById('statEarnings').innerText = `₹${totalEarnings}`;
+                }
+            } catch (e) {
+                console.error("Error fetching monthly stats", e);
+            }
+        }
+
         // ===== MODAL & QUALITY =====
         let selectedQuality = '';
 
-        function openAction(id) {
+        async function openAction(id) {
             currentPickupId = id;
+
+            // Sync location on arrive so routing from here is accurate
+            const workerId = localStorage.getItem('workerId');
+            if (workerId) {
+                try {
+                    await fetch(`${API_BASE}/api/pickup/${id}/arrive`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ workerId })
+                    });
+                } catch (e) { console.error('Error syncing arrive location', e); }
+            }
+
             if (modal) modal.show();
         }
 
@@ -552,23 +630,31 @@
         }
 
         async function handleComplete() {
-            if (!currentPickupId || !selectedQuality) return;
+            const workerId = localStorage.getItem('workerId');
+            if (!currentPickupId || !selectedQuality || !workerId) {
+                alert('Please ensure you are logged in and have selected a quality grade.');
+                return;
+            }
             try {
                 const res = await fetch(`${API_BASE}/api/pickup/${currentPickupId}/status`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         status: 'completed',
-                        segregationDetails: { quality: selectedQuality }
+                        segregationDetails: { quality: selectedQuality },
+                        workerId: workerId
                     })
                 });
                 if (res.ok) {
-                    alert('Pickup Completed!');
+                    alert('Pickup Completed! Your location has been synced.');
                     if (modal) modal.hide();
                     fetchPickups();
+                } else {
+                    const err = await res.json();
+                    alert('Error: ' + (err.message || 'Update failed'));
                 }
             } catch (e) {
-                alert('Error updating status');
+                alert('Error updating status: ' + e.message);
             }
         }
 
@@ -665,11 +751,25 @@
             }
         }
 
-        function startLocationSharing(workerId) {
+        async function startLocationSharing(workerId) {
             if (!socket) return;
             stopLocationSharing(); // Clear any existing interval first
-            let lat = 9.158186;
-            let lng = 76.773261;
+            let lat = 9.1600; // Distinct starting latitude
+            let lng = 76.7450; // Distinct starting longitude
+            
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/workers`);
+                if (res.ok) {
+                    const workers = await res.json();
+                    const me = workers.find(w => w._id === workerId);
+                    if (me && me.currentLocation && me.currentLocation.coordinates) {
+                        if (me.currentLocation.coordinates[1] !== 0) {
+                            lat = me.currentLocation.coordinates[1];
+                            lng = me.currentLocation.coordinates[0];
+                        }
+                    }
+                }
+            } catch(e) { console.error("Error setting initial coords", e); }
 
             locationInterval = setInterval(() => {
                 lat += (Math.random() - 0.5) * 0.001;

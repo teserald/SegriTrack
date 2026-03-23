@@ -48,24 +48,78 @@
             z-index: 1;
         }
 
-        /* Floating Overlays */
         .route-overlay {
             position: absolute;
-            bottom: 100px;
-            left: 20px;
-            right: 20px;
-            z-index: 1000;
-            animation: slideUp 0.6s ease-out;
+            bottom: 0px;
+            left: 0;
+            right: 0;
+            z-index: 500;
+            /* Container styling */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border-top-left-radius: 25px;
+            border-top-right-radius: 25px;
+            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.15);
+
+            /* Draggable parameters */
+            height: 60vh;
+            /* Total height of sheet */
+            transform: translateY(calc(60vh - 120px));
+            /* Initial peek height (120px visible above bottom nav) */
+            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            will-change: transform;
+
+            display: flex;
+            flex-direction: column;
+            padding-bottom: 80px;
+            /* Space for bottom nav */
+        }
+
+        .route-overlay.dragging {
+            transition: none;
+            /* Disable transition while actively dragging */
+        }
+
+        .drag-handle-container {
+            width: 100%;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: grab;
+            flex-shrink: 0;
+        }
+
+        .drag-handle-container:active {
+            cursor: grabbing;
+        }
+
+        .drag-pill {
+            width: 40px;
+            height: 5px;
+            background: #cbd5e1;
+            border-radius: 5px;
+        }
+
+        .sheet-content {
+            padding: 0 20px;
+            overflow-y: auto;
+            flex-grow: 1;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        #checkpointsList {
+            overflow-y: auto;
+            max-height: calc(60vh - 140px);
+            -webkit-overflow-scrolling: touch;
         }
 
         .glass-panel {
-            background: var(--glass);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border: 1px solid var(--glass-border);
-            border-radius: 25px;
-            padding: 15px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            /* Removed padding and borders as overlay handles it now */
+            background: transparent;
+            box-shadow: none;
+            border: none;
         }
 
         .checkpoint-pill {
@@ -186,15 +240,20 @@
 
     <div id="map"></div>
 
-    <!-- Route Intelligence Panel -->
+    <!-- Route Intelligence Panel (Bottom Sheet) -->
     <div class="route-overlay" id="routePanel" style="display: none;">
-        <div class="glass-panel">
-            <div class="d-flex justify-content-between align-items-center mb-3 px-1">
-                <h6 class="fw-bold mb-0 text-dark" style="letter-spacing: -0.5px;">Navigation Intelligence</h6>
-                <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2">LIVE</span>
-            </div>
-            <div id="checkpointsList">
-                <!-- Dynamic Checkpoints -->
+        <div class="drag-handle-container" id="dragHandleArea">
+            <div class="drag-pill"></div>
+        </div>
+        <div class="sheet-content">
+            <div class="glass-panel">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0 text-dark" style="letter-spacing: -0.5px;">Navigation Intelligence</h6>
+                    <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2">LIVE</span>
+                </div>
+                <div id="checkpointsList">
+                    <!-- Dynamic Checkpoints -->
+                </div>
             </div>
         </div>
     </div>
@@ -222,10 +281,38 @@
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <script>
+        const API_BASE = (window.location.port === '3000') ? '' : 'http://localhost:3000';
+
         document.addEventListener('DOMContentLoaded', async () => {
-            const workerLat = 9.158186;
-            const workerLng = 76.773261;
+            const workerId = localStorage.getItem('workerId');
+            if (!workerId) {
+                alert("Please login as a worker first.");
+                window.location.href = '../user/index.html';
+                return;
+            }
+
+            // Default fallback locations
+            let workerLat = 9.1600;
+            let workerLng = 76.7450;
+            let workerName = "Worker";
+
+            // Fetch Worker Details for real location
+            try {
+                const workerRes = await fetch(`${API_BASE}/api/admin/workers`);
+                if (workerRes.ok) {
+                    const workers = await workerRes.json();
+                    const me = workers.find(w => w._id === workerId);
+                    if (me && me.currentLocation && me.currentLocation.coordinates) {
+                        if (me.currentLocation.coordinates[1] !== 0) {
+                            workerLat = me.currentLocation.coordinates[1];
+                            workerLng = me.currentLocation.coordinates[0];
+                            workerName = me.name;
+                        }
+                    }
+                }
+            } catch (e) { console.error("Error fetching worker location", e); }
 
             const map = L.map('map', { zoomControl: false }).setView([workerLat, workerLng], 13);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
@@ -234,34 +321,38 @@
 
             // Premium Worker Icon
             const truckIcon = L.divIcon({
-                html: `<div style="background: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 3px solid var(--dark-green); animation: markerPulse 2s infinite;">
-                        <i class="bi bi-truck text-dark" style="font-size: 20px;"></i>
-                       </div>`,
+                html: `<div
+        style="background: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 3px solid var(--dark-green); animation: markerPulse 2s infinite;">
+        <i class="bi bi-truck text-dark" style="font-size: 20px;"></i>
+    </div>`,
                 className: '',
                 iconSize: [40, 40],
                 iconAnchor: [20, 20]
             });
-            L.marker([workerLat, workerLng], { icon: truckIcon }).addTo(map).bindPopup("<b style='font-family: Outfit;'>Current Location</b><br>Adoor Depot").openPopup();
+            const workerMarkerLeafletInstance = L.marker([workerLat, workerLng], { icon: truckIcon }).addTo(map).bindPopup(`<b
+        style='font-family: Outfit;'>${workerName}</b><br>Current Starting Point`);
+            workerMarkerLeafletInstance.openPopup();
 
             const houseIcon = (index) => L.divIcon({
-                html: `<div style="background: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 3px solid var(--main-green);">
-                        <span style="font-family: Outfit; font-weight: 700; color: var(--dark-green); font-size: 14px;">${index}</span>
-                       </div>`,
+                html: `<div
+        style="background: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 3px solid var(--main-green);">
+        <span style="font-family: Outfit; font-weight: 700; color: var(--dark-green); font-size: 14px;">${index}</span>
+    </div>`,
                 className: '',
                 iconSize: [36, 36],
                 iconAnchor: [18, 18]
             });
 
             try {
-                const res = await fetch('/api/pickup/assigned');
+                const res = await fetch(`${API_BASE}/api/pickup/assigned?workerId=${workerId}&radiusKm=10`);
                 let pickups = await res.json();
 
-                // Limit to show "Intelligence" for first two households as requested
-                const displayPickups = pickups.slice(0, 2);
+                // Show all optimized stops
+                const displayPickups = pickups;
 
                 if (displayPickups.length > 0) {
                     const waypoints = [L.latLng(workerLat, workerLng)];
-                    const checkpointNames = ["Depot"];
+                    const checkpointNames = ["Current"];
 
                     displayPickups.forEach((p, idx) => {
                         if (p.location && p.location.coordinates) {
@@ -288,53 +379,205 @@
                         }).addTo(map);
 
                         routingControl.on('routesfound', function (e) {
-                            const routes = e.routes;
-                            const mainRoute = routes[0];
-                            const legs = mainRoute.instructions; // Instructions often carry segment data or we can estimate
+                            const mainRoute = e.routes[0];
 
                             document.getElementById('routePanel').style.display = 'block';
                             const list = document.getElementById('checkpointsList');
                             list.innerHTML = '';
 
-                            // Calculate leg summaries (Approximate from total if legs aren't explicit in OSRM Leaflet)
-                            // We distribute the total summary based on waypoint count for demo purposes if OSRM legs aren't flat
-                            const totalDist = mainRoute.summary.totalDistance / 1000;
-                            const totalTime = Math.round((totalDist / 30) * 60); // 30km/h avg
+                            // OSRM provides per-leg data via waypointIndices and coordinates
+                            // Each "leg" corresponds to the segment between consecutive waypoints
+                            const totalLegs = waypoints.length - 1;
+                            const totalDist = mainRoute.summary.totalDistance / 1000; // km
+                            const totalTimeSec = mainRoute.summary.totalTime; // seconds
 
-                            waypoints.slice(1).forEach((wp, i) => {
-                                // Simple logic: Split total distance/time by 2 if 2 stops, or simulate realistic variation
-                                const legDist = (i === 0) ? (totalDist * 0.4).toFixed(1) : (totalDist * 0.6).toFixed(1);
-                                const legTime = Math.round((legDist / 25) * 60); // Slower for last leg
+                            // Extract actual per-leg distances from the route instructions
+                            // Group instructions by waypoint index to get real leg segments
+                            const instructions = mainRoute.instructions || [];
+                            const legDistances = [];
+                            const legTimes = [];
+                            let currentLegDist = 0;
+                            let currentLegTime = 0;
+                            let legIndex = 0;
+
+                            for (const inst of instructions) {
+                                if (inst.type === 'WaypointReached' || inst.type === 'DestinationReached') {
+                                    legDistances.push(currentLegDist / 1000); // convert m to km
+                                    legTimes.push(Math.round(currentLegTime / 60)); // convert s to min
+                                    currentLegDist = 0;
+                                    currentLegTime = 0;
+                                    legIndex++;
+                                } else {
+                                    currentLegDist += (inst.distance || 0);
+                                    currentLegTime += (inst.time || 0);
+                                }
+                            }
+
+                            // Fallback: if instructions didn't yield proper legs, distribute evenly
+                            if (legDistances.length === 0 || legDistances.length < totalLegs) {
+                                legDistances.length = 0;
+                                legTimes.length = 0;
+                                for (let i = 0; i < totalLegs; i++) {
+                                    legDistances.push(totalDist / totalLegs);
+                                    legTimes.push(Math.round((totalTimeSec / 60) / totalLegs));
+                                }
+                            }
+
+                            // Build checkpoint cards with real per-leg data
+                            for (let i = 0; i < totalLegs; i++) {
+                                const dist = legDistances[i] !== undefined ? legDistances[i].toFixed(1) : (totalDist / totalLegs).toFixed(1);
+                                const time = legTimes[i] !== undefined ? legTimes[i] : Math.round((totalTimeSec / 60) / totalLegs);
 
                                 list.innerHTML += `
-                                    <div class="checkpoint-pill shadow-sm">
-                                        <div class="stop-number">${i + 1}</div>
-                                        <div class="flex-grow-1">
-                                            <div class="fw-bold text-dark small mb-0">${checkpointNames[i + 1]}</div>
-                                            <div class="text-muted" style="font-size: 0.65rem;">Next Stop</div>
-                                        </div>
-                                        <div class="text-end">
-                                            <div class="fw-bold text-success small mb-0">${legTime} min</div>
-                                            <div class="text-muted" style="font-size: 0.65rem;">${legDist} km</div>
-                                        </div>
-                                    </div>
-                                `;
-                            });
+    <div class="checkpoint-pill shadow-sm">
+        <div class="stop-number">${i + 1}</div>
+        <div class="flex-grow-1">
+            <div class="fw-bold text-dark small mb-0">${checkpointNames[i + 1]}</div>
+            <div class="text-muted" style="font-size: 0.65rem;">Stop ${i + 1} of ${totalLegs}</div>
+        </div>
+        <div class="text-end">
+            <div class="fw-bold text-success small mb-0">${time} min</div>
+            <div class="text-muted" style="font-size: 0.65rem;">${dist} km</div>
+        </div>
+    </div>
+    `;
+                            }
                         });
                     }
                 }
             } catch (error) {
                 console.error("Map Error:", error);
-                // Fallback UI
-                document.getElementById('routePanel').style.display = 'block';
+                document.getElementById('routePanel').style.display = 'flex';
                 document.getElementById('checkpointsList').innerHTML = `
-                    <div class="checkpoint-pill">
-                        <div class="stop-number">1</div>
-                        <div class="flex-grow-1"><div class="fw-bold small">Manakala</div><div class="text-muted small">First stop</div></div>
-                        <div class="text-end"><div class="fw-bold text-success small">12 min</div><div class="text-muted small">4.2 km</div></div>
-                    </div>
-                `;
+    <div class="text-center py-3">
+        <i class="bi bi-exclamation-triangle text-warning fs-4"></i>
+        <p class="text-muted small mt-2 mb-0">Failed to load route data. Please reload the page.</p>
+    </div>
+    `;
             }
+
+            // Bottom Sheet Drag Logic
+            const sheet = document.getElementById('routePanel');
+            const handler = document.getElementById('dragHandleArea');
+
+            let isDragging = false;
+            let startY;
+            let currentY;
+
+            // Calculate heights
+            // Total height of the sheet (60vh)
+            const sheetHeight = window.innerHeight * 0.6;
+            // The position when fully collapsed (only 120px showing above the bottom)
+            const collapsedY = sheetHeight - 120;
+            // The position when fully expanded
+            const expandedY = 0;
+
+            // Current transform value
+            let transformY = collapsedY;
+
+            function onDragStart(e) {
+                // Return if clicking links/buttons
+                if (e.target.closest('a') || e.target.closest('button')) return;
+
+                isDragging = true;
+                startY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+                sheet.classList.add('dragging');
+            }
+
+            function onDragMove(e) {
+                if (!isDragging) return;
+                e.preventDefault(); // Prevent scrolling while dragging the sheet
+
+                currentY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+                const deltaY = currentY - startY;
+
+                // Calculate new position
+                let newY = transformY + deltaY;
+
+                // Boundaries (don't drag above expandedY or below collapsedY)
+                if (newY < expandedY) newY = expandedY;
+                if (newY > collapsedY) newY = collapsedY;
+
+                sheet.style.transform = `translateY(${newY}px)`;
+            }
+
+            function onDragEnd(e) {
+                if (!isDragging) return;
+                isDragging = false;
+                sheet.classList.remove('dragging');
+
+                // Snap logic based on where it was released
+                const currentTransform = parseFloat(sheet.style.transform.replace('translateY(', '').replace('px)', ''));
+
+                const threshold = (collapsedY - expandedY) / 2;
+
+                if (currentTransform > threshold) {
+                    // Snap to collapsed
+                    transformY = collapsedY;
+                } else {
+                    // Snap to expanded
+                    transformY = expandedY;
+                }
+
+                sheet.style.transform = `translateY(${transformY}px)`;
+            }
+
+            // Attach listeners to the handle area (and optionally the whole sheet header)
+            handler.addEventListener('touchstart', onDragStart, { passive: false });
+            handler.addEventListener('touchmove', onDragMove, { passive: false });
+            window.addEventListener('touchend', onDragEnd);
+
+            handler.addEventListener('mousedown', onDragStart);
+            window.addEventListener('mousemove', onDragMove);
+            window.addEventListener('mouseup', onDragEnd);
+
+            // Continuous Mouse wheel scroll logic
+            const checkpointsList = document.getElementById('checkpointsList');
+
+            sheet.addEventListener('wheel', (e) => {
+                const isOverContent = e.target.closest('.sheet-content') || e.target.closest('#checkpointsList');
+
+                if (transformY === collapsedY) {
+                    e.preventDefault();
+                    if (e.deltaY > 0) {
+                        transformY = expandedY;
+                        sheet.style.transform = `translateY(${transformY}px)`;
+                    }
+                } else if (transformY === expandedY) {
+                    if (isOverContent && checkpointsList) {
+                        const atTop = checkpointsList.scrollTop <= 0;
+                        const atBottom = checkpointsList.scrollTop + checkpointsList.clientHeight >= checkpointsList.scrollHeight - 1;
+
+                        if (e.deltaY < 0 && atTop) {
+                            // Scrolling up at top of list → collapse the sheet
+                            e.preventDefault();
+                            transformY = collapsedY;
+                            sheet.style.transform = `translateY(${transformY}px)`;
+                        } else if (e.deltaY > 0 && atBottom) {
+                            // At bottom of list, prevent page scroll but don't collapse
+                            e.preventDefault();
+                        }
+                        // Otherwise let native scroll happen inside the list
+                    } else {
+                        // Scrolling over drag handle or padding area
+                        e.preventDefault();
+                        if (e.deltaY < 0) {
+                            transformY = collapsedY;
+                            sheet.style.transform = `translateY(${transformY}px)`;
+                        }
+                    }
+                }
+            }, { passive: false });
+
+            // Socket logic to move the marker dynamically if the simulation is active gracefully!
+            try {
+                const socket = io(API_BASE);
+                socket.on('workerLocation', (data) => {
+                    if (data.workerId === workerId) {
+                        workerMarkerLeafletInstance.setLatLng([data.lat, data.lng]);
+                    }
+                });
+            } catch (e) { console.error("Socket err", e); }
         });
     </script>
 </body>

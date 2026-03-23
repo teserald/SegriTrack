@@ -94,7 +94,15 @@ router.post('/demo-login', async (req, res) => {
                     name: 'Adithya User (Demo)',
                     email: 'user@segritrack.com',
                     password: 'password',
-                    address: { street: 'Demo St', city: 'Kochi' }
+                    address: {
+                        street: 'College of Engineering Adoor, Manakala',
+                        city: 'Adoor',
+                        zip: '691523',
+                        location: {
+                            type: 'Point',
+                            coordinates: [76.7182, 9.1324]
+                        }
+                    }
                 });
                 await user.save();
             }

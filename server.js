@@ -30,7 +30,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Database Connection
 // Database Connection
 mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/segritrack')
-    .then(() => console.log('MongoDB Connected'))
+    .then(async () => {
+        console.log('MongoDB Connected');
+        const seedDemoPickups = require('./src/utils/seedDemo');
+        await seedDemoPickups();
+    })
     .catch(err => console.log(err));
 
 const authRoutes = require('./src/routes/auth');
