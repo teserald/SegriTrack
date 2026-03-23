@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # SegriTrack 🌿
 
 Waste Collection and Segregation Monitoring System.
@@ -40,4 +39,3 @@ Waste Collection and Segregation Monitoring System.
 - **Real-time Tracking**: Live worker location on the map.
 - **QR Verification**: Verify pickups and ensuring attendance.
 - **Segregation Rewards**: Rate segregation quality and award points.
-=======
