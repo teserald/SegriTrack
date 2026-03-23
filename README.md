@@ -16,6 +16,7 @@
 
 ## 📁 Project Structure
 - `public/`: Frontend assets and portal pages
+    - `index.html`: Main landing page
     - `user/`: Citizen portal (Schedule, Track, Redeem)
     - `worker/`: Collector portal (Pickup list, QR Scan, Status)
     - `admin/`: Management portal (Live Map, Stats)
@@ -43,9 +44,8 @@
    ```
 
 ## 🌐 Accessing Portals
-- **User Portal**: [http://localhost:3000/user/index.html](http://localhost:3000/user/index.html)
+- **User Portal**: [http://localhost:3000/](http://localhost:3000/)
 - **Worker Portal**: [http://localhost:3000/worker/index.html](http://localhost:3000/worker/index.html)
 - **Admin Portal**: [http://localhost:3000/admin/login.html](http://localhost:3000/admin/login.html)
 
----
-*Developed for College Mini Project S6.*
+
