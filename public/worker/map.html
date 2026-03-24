@@ -283,7 +283,7 @@
     <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        const API_BASE = (window.location.port === '3000') ? '' : 'http://localhost:3000';
+        const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && window.location.port !== '3000' ? 'http://localhost:3000' : '';
 
         document.addEventListener('DOMContentLoaded', async () => {
             const workerId = localStorage.getItem('workerId');

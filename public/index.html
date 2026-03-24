@@ -354,7 +354,7 @@
                 if (!roleEl) return;
 
                 const role = roleEl.value;
-                const API_BASE = (window.location.port === '5500' || window.location.port === '5501') ? 'http://localhost:3000' : '';
+                const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && window.location.port !== '3000' ? 'http://localhost:3000' : '';
 
                 // Redirect Admin directly to the Admin Portal
                 if (role === 'admin') {
