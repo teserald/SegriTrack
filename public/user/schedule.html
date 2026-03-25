@@ -355,6 +355,13 @@
                 return;
             }
 
+            // Block past dates
+            const today = new Date().toISOString().split('T')[0];
+            if (date < today) {
+                alert("Cannot schedule a pickup for a past date. Please select today or a future date.");
+                return;
+            }
+
             // Show loading state
             const btn = document.querySelector('button[onclick="confirmSchedule()"]');
             const originalText = btn.innerText;
