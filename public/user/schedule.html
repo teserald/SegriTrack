@@ -223,7 +223,7 @@
     <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
     <script>
         // Use port 3000 if we are on Live Server (port 5500)
-        const API_BASE = (window.location.port === '5500' || window.location.port === '5501') ? 'http://localhost:3000' : '';
+        const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && window.location.port !== '3000' ? 'http://localhost:3000' : '';
 
         // Map Variables
         let map, selectionMarker;
@@ -326,6 +326,12 @@
 
         // 2. Critical Fix: Detect "Special" mode immediately on load
         document.addEventListener('DOMContentLoaded', function () {
+            // Restrict date picker to today and onwards
+            const today = new Date().toISOString().split('T')[0];
+            const dateInput = document.getElementById('pickupDate');
+            dateInput.setAttribute('min', today);
+            dateInput.value = today;
+
             const params = new URLSearchParams(window.location.search);
             if (params.get('mode') === 'special') {
                 switchView('special');
@@ -346,6 +352,13 @@
 
             if (!date) {
                 alert("Please select a pickup date");
+                return;
+            }
+
+            // Block past dates
+            const today = new Date().toISOString().split('T')[0];
+            if (date < today) {
+                alert("Cannot schedule a pickup for a past date. Please select today or a future date.");
                 return;
             }
 

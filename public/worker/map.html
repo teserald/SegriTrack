@@ -231,10 +231,14 @@
                 </div>
                 <span class="navbar-brand fw-bold mb-0 fs-5 text-white">Route Map</span>
             </div>
-            <button class="btn btn-outline-light btn-sm rounded-pill px-3 border-opacity-25"
-                onclick="location.reload()">
-                <i class="bi bi-arrow-clockwise"></i>
-            </button>
+            <div class="d-flex align-items-center gap-2">
+                <input type="date" id="routeDate" class="form-control form-control-sm bg-white bg-opacity-10 text-white border-0 rounded-pill px-3"
+                    style="max-width: 160px; font-family: Outfit; font-size: 0.8rem; color-scheme: dark;">
+                <button class="btn btn-outline-light btn-sm rounded-pill px-3 border-opacity-25"
+                    onclick="loadRouteForDate()">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </button>
+            </div>
         </div>
     </nav>
 
@@ -283,20 +287,30 @@
     <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        const API_BASE = (window.location.port === '3000') ? '' : 'http://localhost:3000';
+        const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && window.location.port !== '3000' ? 'http://localhost:3000' : '';
 
-        document.addEventListener('DOMContentLoaded', async () => {
+        // Global references for reload
+        let leafletMap, workerMarkerLeafletInstance, pickupMarkerLayer, routingControl;
+        let workerLat = 9.1600, workerLng = 76.7450, workerName = "Worker";
+
+        // Set date picker to today on load
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('routeDate').value = today;
+            initMap();
+        });
+
+        function loadRouteForDate() {
+            loadPickupsOnMap();
+        }
+
+        async function initMap() {
             const workerId = localStorage.getItem('workerId');
             if (!workerId) {
                 alert("Please login as a worker first.");
-                window.location.href = '../user/index.html';
+                window.location.href = '/index.html';
                 return;
             }
-
-            // Default fallback locations
-            let workerLat = 9.1600;
-            let workerLng = 76.7450;
-            let workerName = "Worker";
 
             // Fetch Worker Details for real location
             try {
@@ -314,10 +328,10 @@
                 }
             } catch (e) { console.error("Error fetching worker location", e); }
 
-            const map = L.map('map', { zoomControl: false }).setView([workerLat, workerLng], 13);
+            leafletMap = L.map('map', { zoomControl: false }).setView([workerLat, workerLng], 13);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
                 attribution: '&copy; SegriTrack'
-            }).addTo(map);
+            }).addTo(leafletMap);
 
             // Premium Worker Icon
             const truckIcon = L.divIcon({
@@ -329,9 +343,36 @@
                 iconSize: [40, 40],
                 iconAnchor: [20, 20]
             });
-            const workerMarkerLeafletInstance = L.marker([workerLat, workerLng], { icon: truckIcon }).addTo(map).bindPopup(`<b
+            workerMarkerLeafletInstance = L.marker([workerLat, workerLng], { icon: truckIcon }).addTo(leafletMap).bindPopup(`<b
         style='font-family: Outfit;'>${workerName}</b><br>Current Starting Point`);
             workerMarkerLeafletInstance.openPopup();
+
+            pickupMarkerLayer = L.layerGroup().addTo(leafletMap);
+
+            // Load pickups for today
+            await loadPickupsOnMap();
+
+            // Bottom Sheet Drag Logic
+            setupBottomSheet();
+
+            // Socket logic
+            try {
+                const socket = io(API_BASE);
+                socket.on('workerLocation', (data) => {
+                    if (data.workerId === workerId) {
+                        workerMarkerLeafletInstance.setLatLng([data.lat, data.lng]);
+                    }
+                });
+            } catch (e) { console.error("Socket err", e); }
+        }
+
+        async function loadPickupsOnMap() {
+            const workerId = localStorage.getItem('workerId');
+            const selectedDate = document.getElementById('routeDate').value;
+
+            // Clear previous markers and route
+            if (pickupMarkerLayer) pickupMarkerLayer.clearLayers();
+            if (routingControl) { leafletMap.removeControl(routingControl); routingControl = null; }
 
             const houseIcon = (index) => L.divIcon({
                 html: `<div
@@ -344,10 +385,9 @@
             });
 
             try {
-                const res = await fetch(`${API_BASE}/api/pickup/assigned?workerId=${workerId}&radiusKm=10`);
+                const res = await fetch(`${API_BASE}/api/pickup/assigned?workerId=${workerId}&radiusKm=10&date=${selectedDate}`);
                 let pickups = await res.json();
 
-                // Show all optimized stops
                 const displayPickups = pickups;
 
                 if (displayPickups.length > 0) {
@@ -360,14 +400,14 @@
                             waypoints.push(L.latLng(lat, lng));
                             checkpointNames.push(p.location.address.split(',')[0]);
 
-                            L.marker([lat, lng], { icon: houseIcon(idx + 1) })
-                                .addTo(map)
+                            const marker = L.marker([lat, lng], { icon: houseIcon(idx + 1) })
                                 .bindPopup(`<b style="font-family: Outfit;">Stop #${idx + 1}</b><br>${p.location.address}`);
+                            pickupMarkerLayer.addLayer(marker);
                         }
                     });
 
                     if (waypoints.length > 1) {
-                        const routingControl = L.Routing.control({
+                        routingControl = L.Routing.control({
                             waypoints: waypoints,
                             routeWhileDragging: false,
                             addWaypoints: false,
@@ -376,7 +416,7 @@
                                 styles: [{ color: '#004d37', opacity: 0.7, weight: 8 }, { color: '#01f386', opacity: 1, weight: 3 }]
                             },
                             show: false
-                        }).addTo(map);
+                        }).addTo(leafletMap);
 
                         routingControl.on('routesfound', function (e) {
                             const mainRoute = e.routes[0];
@@ -385,35 +425,29 @@
                             const list = document.getElementById('checkpointsList');
                             list.innerHTML = '';
 
-                            // OSRM provides per-leg data via waypointIndices and coordinates
-                            // Each "leg" corresponds to the segment between consecutive waypoints
                             const totalLegs = waypoints.length - 1;
-                            const totalDist = mainRoute.summary.totalDistance / 1000; // km
-                            const totalTimeSec = mainRoute.summary.totalTime; // seconds
+                            const totalDist = mainRoute.summary.totalDistance / 1000;
+                            const totalTimeSec = mainRoute.summary.totalTime;
 
-                            // Extract actual per-leg distances from the route instructions
-                            // Group instructions by waypoint index to get real leg segments
                             const instructions = mainRoute.instructions || [];
                             const legDistances = [];
                             const legTimes = [];
                             let currentLegDist = 0;
                             let currentLegTime = 0;
-                            let legIndex = 0;
 
                             for (const inst of instructions) {
                                 if (inst.type === 'WaypointReached' || inst.type === 'DestinationReached') {
-                                    legDistances.push(currentLegDist / 1000); // convert m to km
-                                    legTimes.push(Math.round(currentLegTime / 60)); // convert s to min
+                                    legDistances.push(currentLegDist / 1000);
+                                    legTimes.push(Math.round(currentLegTime / 60));
                                     currentLegDist = 0;
                                     currentLegTime = 0;
-                                    legIndex++;
                                 } else {
                                     currentLegDist += (inst.distance || 0);
                                     currentLegTime += (inst.time || 0);
                                 }
                             }
 
-                            // Fallback: if instructions didn't yield proper legs, distribute evenly
+                            // Fallback
                             if (legDistances.length === 0 || legDistances.length < totalLegs) {
                                 legDistances.length = 0;
                                 legTimes.length = 0;
@@ -423,31 +457,44 @@
                                 }
                             }
 
-                            // Build checkpoint cards with real per-leg data
+                            // Build checkpoint cards with CUMULATIVE ETA
+                            let cumulativeTime = 0;
+                            let cumulativeDist = 0;
                             for (let i = 0; i < totalLegs; i++) {
-                                const dist = legDistances[i] !== undefined ? legDistances[i].toFixed(1) : (totalDist / totalLegs).toFixed(1);
-                                const time = legTimes[i] !== undefined ? legTimes[i] : Math.round((totalTimeSec / 60) / totalLegs);
+                                const legDist = legDistances[i] !== undefined ? legDistances[i] : (totalDist / totalLegs);
+                                const legTime = legTimes[i] !== undefined ? legTimes[i] : Math.round((totalTimeSec / 60) / totalLegs);
+
+                                cumulativeTime += legTime;
+                                cumulativeDist += legDist;
 
                                 list.innerHTML += `
     <div class="checkpoint-pill shadow-sm">
         <div class="stop-number">${i + 1}</div>
         <div class="flex-grow-1">
             <div class="fw-bold text-dark small mb-0">${checkpointNames[i + 1]}</div>
-            <div class="text-muted" style="font-size: 0.65rem;">Stop ${i + 1} of ${totalLegs}</div>
+            <div class="text-muted" style="font-size: 0.65rem;">Stop ${i + 1} of ${totalLegs} · ${legDist.toFixed(1)} km leg</div>
         </div>
         <div class="text-end">
-            <div class="fw-bold text-success small mb-0">${time} min</div>
-            <div class="text-muted" style="font-size: 0.65rem;">${dist} km</div>
+            <div class="fw-bold text-success small mb-0">ETA ${cumulativeTime} min</div>
+            <div class="text-muted" style="font-size: 0.65rem;">${cumulativeDist.toFixed(1)} km total</div>
         </div>
     </div>
     `;
                             }
                         });
                     }
+                } else {
+                    document.getElementById('routePanel').style.display = 'block';
+                    document.getElementById('checkpointsList').innerHTML = `
+    <div class="text-center py-3">
+        <i class="bi bi-calendar-x text-muted fs-4"></i>
+        <p class="text-muted small mt-2 mb-0">No scheduled pickups for this date.</p>
+    </div>
+    `;
                 }
             } catch (error) {
                 console.error("Map Error:", error);
-                document.getElementById('routePanel').style.display = 'flex';
+                document.getElementById('routePanel').style.display = 'block';
                 document.getElementById('checkpointsList').innerHTML = `
     <div class="text-center py-3">
         <i class="bi bi-exclamation-triangle text-warning fs-4"></i>
@@ -455,8 +502,9 @@
     </div>
     `;
             }
+        }
 
-            // Bottom Sheet Drag Logic
+        function setupBottomSheet() {
             const sheet = document.getElementById('routePanel');
             const handler = document.getElementById('dragHandleArea');
 
@@ -464,21 +512,13 @@
             let startY;
             let currentY;
 
-            // Calculate heights
-            // Total height of the sheet (60vh)
             const sheetHeight = window.innerHeight * 0.6;
-            // The position when fully collapsed (only 120px showing above the bottom)
             const collapsedY = sheetHeight - 120;
-            // The position when fully expanded
             const expandedY = 0;
-
-            // Current transform value
             let transformY = collapsedY;
 
             function onDragStart(e) {
-                // Return if clicking links/buttons
                 if (e.target.closest('a') || e.target.closest('button')) return;
-
                 isDragging = true;
                 startY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
                 sheet.classList.add('dragging');
@@ -486,18 +526,12 @@
 
             function onDragMove(e) {
                 if (!isDragging) return;
-                e.preventDefault(); // Prevent scrolling while dragging the sheet
-
+                e.preventDefault();
                 currentY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
                 const deltaY = currentY - startY;
-
-                // Calculate new position
                 let newY = transformY + deltaY;
-
-                // Boundaries (don't drag above expandedY or below collapsedY)
                 if (newY < expandedY) newY = expandedY;
                 if (newY > collapsedY) newY = collapsedY;
-
                 sheet.style.transform = `translateY(${newY}px)`;
             }
 
@@ -505,80 +539,38 @@
                 if (!isDragging) return;
                 isDragging = false;
                 sheet.classList.remove('dragging');
-
-                // Snap logic based on where it was released
                 const currentTransform = parseFloat(sheet.style.transform.replace('translateY(', '').replace('px)', ''));
-
                 const threshold = (collapsedY - expandedY) / 2;
-
-                if (currentTransform > threshold) {
-                    // Snap to collapsed
-                    transformY = collapsedY;
-                } else {
-                    // Snap to expanded
-                    transformY = expandedY;
-                }
-
+                transformY = currentTransform > threshold ? collapsedY : expandedY;
                 sheet.style.transform = `translateY(${transformY}px)`;
             }
 
-            // Attach listeners to the handle area (and optionally the whole sheet header)
             handler.addEventListener('touchstart', onDragStart, { passive: false });
             handler.addEventListener('touchmove', onDragMove, { passive: false });
             window.addEventListener('touchend', onDragEnd);
-
             handler.addEventListener('mousedown', onDragStart);
             window.addEventListener('mousemove', onDragMove);
             window.addEventListener('mouseup', onDragEnd);
 
-            // Continuous Mouse wheel scroll logic
             const checkpointsList = document.getElementById('checkpointsList');
-
             sheet.addEventListener('wheel', (e) => {
                 const isOverContent = e.target.closest('.sheet-content') || e.target.closest('#checkpointsList');
-
                 if (transformY === collapsedY) {
                     e.preventDefault();
-                    if (e.deltaY > 0) {
-                        transformY = expandedY;
-                        sheet.style.transform = `translateY(${transformY}px)`;
-                    }
+                    if (e.deltaY > 0) { transformY = expandedY; sheet.style.transform = `translateY(${transformY}px)`; }
                 } else if (transformY === expandedY) {
                     if (isOverContent && checkpointsList) {
                         const atTop = checkpointsList.scrollTop <= 0;
                         const atBottom = checkpointsList.scrollTop + checkpointsList.clientHeight >= checkpointsList.scrollHeight - 1;
-
-                        if (e.deltaY < 0 && atTop) {
-                            // Scrolling up at top of list → collapse the sheet
-                            e.preventDefault();
-                            transformY = collapsedY;
-                            sheet.style.transform = `translateY(${transformY}px)`;
-                        } else if (e.deltaY > 0 && atBottom) {
-                            // At bottom of list, prevent page scroll but don't collapse
-                            e.preventDefault();
-                        }
-                        // Otherwise let native scroll happen inside the list
+                        if (e.deltaY < 0 && atTop) { e.preventDefault(); transformY = collapsedY; sheet.style.transform = `translateY(${transformY}px)`; }
+                        else if (e.deltaY > 0 && atBottom) { e.preventDefault(); }
                     } else {
-                        // Scrolling over drag handle or padding area
                         e.preventDefault();
-                        if (e.deltaY < 0) {
-                            transformY = collapsedY;
-                            sheet.style.transform = `translateY(${transformY}px)`;
-                        }
+                        if (e.deltaY < 0) { transformY = collapsedY; sheet.style.transform = `translateY(${transformY}px)`; }
                     }
                 }
             }, { passive: false });
-
-            // Socket logic to move the marker dynamically if the simulation is active gracefully!
-            try {
-                const socket = io(API_BASE);
-                socket.on('workerLocation', (data) => {
-                    if (data.workerId === workerId) {
-                        workerMarkerLeafletInstance.setLatLng([data.lat, data.lng]);
-                    }
-                });
-            } catch (e) { console.error("Socket err", e); }
-        });
+        }
     </script>
 </body>
 
