@@ -137,9 +137,18 @@ router.get('/worker/:workerId/history', async (req, res) => {
 // Worker: Get Assigned Pickups with Geofencing and Route Optimization
 router.get('/assigned', async (req, res) => {
     try {
-        const { workerId, radiusKm = 10 } = req.query;
-        // Fetch all scheduled pickups
-        let pickups = await Pickup.find({ status: 'scheduled' }).populate('user', 'name phone');
+        const { workerId, radiusKm = 10, date } = req.query;
+
+        // Date filtering: default to today
+        const targetDate = date ? new Date(date) : new Date();
+        const startOfDay = new Date(targetDate); startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(targetDate); endOfDay.setHours(23, 59, 59, 999);
+
+        // Fetch only scheduled pickups for the target date
+        let pickups = await Pickup.find({
+            status: 'scheduled',
+            date: { $gte: startOfDay, $lte: endOfDay }
+        }).populate('user', 'name phone');
 
         // Find worker's current location to act as the starting point
         let workerLocation = null;

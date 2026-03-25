@@ -326,6 +326,12 @@
 
         // 2. Critical Fix: Detect "Special" mode immediately on load
         document.addEventListener('DOMContentLoaded', function () {
+            // Restrict date picker to today and onwards
+            const today = new Date().toISOString().split('T')[0];
+            const dateInput = document.getElementById('pickupDate');
+            dateInput.setAttribute('min', today);
+            dateInput.value = today;
+
             const params = new URLSearchParams(window.location.search);
             if (params.get('mode') === 'special') {
                 switchView('special');
